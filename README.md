@@ -26,3 +26,8 @@ npm run dev
 5. Implementar controle de vigência, alterações e revogações.
 
 > A interface inicial não fornece respostas automáticas sem fonte. O mecanismo de consulta será conectado após a consolidação da base normativa.
+
+
+## Busca híbrida
+
+A arquitetura de consulta foi preparada para combinar PostgreSQL Full-Text Search com pgvector. Os embeddings devem usar dimensão 1536, compatível com a coluna `trechos.embedding vector(1536)`. A geração e consulta vetorial devem ocorrer somente no backend (Supabase Edge Functions), usando `OPENAI_API_KEY` armazenada como secret. O Full-Text Search permanece como fallback seguro.
