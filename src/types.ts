@@ -1,0 +1,1 @@
+export type StatusNorma='Vigente'|'Alterada'|'Revogada'|'Vigência a confirmar';export interface Norma{id:string;tipo:string;numero:string;ano:number;titulo:string;assunto:string;status:StatusNorma;relacoes?:string[]}
