@@ -8,6 +8,7 @@ import type { Norma } from './types';
 type ResultadoConsulta = {
   id?: string;
   trecho_id?: number;
+  aspecto?: string;
   titulo: string;
   dispositivo?: string;
   pagina?: number;
@@ -63,6 +64,21 @@ const TEMAS: Array<{ id: TemaId; rotulo: string; contexto: string }> = [
 
 const chaveNorma = (titulo: string) => titulo.trim().toLowerCase();
 const perguntaSobreVigencia = (texto: string) => /\b(vigent|vig[eê]ncia|revogad|revogou|revoga[cç][aã]o|alterad|situa[cç][aã]o normativa|ainda vale|est[aá] valendo)\w*/i.test(texto);
+const perguntaCompostaOuComparativa = (texto: string) => {
+  const t = texto.toLowerCase();
+  if (/(diferen[cç]a|comparar|compare|comparativo|versus|\bvs\b|o que muda)/i.test(t)) return true;
+  const sinais = [
+    /(adquir|aquisi[cç][aã]o|comprar|compra)/i,
+    /(transport|tr[aá]fego|\bgt\b|\bgte\b)/i,
+    /(registr|cadastr|craf|sigma|sinarm)/i,
+    /(transfer)/i,
+    /(muni[cç][aã]o|muni[cç][oõ]es|cartuchos?|recarga|insumos)/i,
+    /(^|[^a-z])porte([^a-z]|$)|portar arma/i,
+    /(requisito|documento|exig[eê]ncia|necess[aá]rio|deve apresentar)/i,
+    /(procedimento|como fazer|como obter|como solicitar|requerer|pedido)/i,
+  ];
+  return sinais.filter((r) => r.test(t)).length >= 2;
+};
 
 const qualidadeDaAderencia = (relevancia?: number): QualidadeAderencia => {
   const valor = Number(relevancia || 0);
@@ -148,7 +164,9 @@ export default function App() {
 
     const temaSelecionado = TEMAS.find((item) => item.id === tema);
     const consultaEfetiva = [pergunta.trim(), temaSelecionado?.contexto].filter(Boolean).join(' ');
-    const { data: achados, error } = await supabase.rpc('consultar_base_normativa', { consulta: consultaEfetiva, limite: 12 });
+    const consultaComposta = perguntaCompostaOuComparativa(pergunta);
+    const rpc = consultaComposta ? 'consultar_base_normativa_composta' : 'consultar_base_normativa';
+    const { data: achados, error } = await supabase.rpc(rpc, { consulta: consultaEfetiva, limite: consultaComposta ? 10 : 12 });
 
     if (error) {
       setErroConsulta('Não foi possível consultar a base normativa agora.');
@@ -162,8 +180,8 @@ export default function App() {
       return !['Revogada', 'Superada materialmente', 'Vigência a confirmar', 'Ato alterador', 'Parcialmente vigente'].includes(status);
     });
     const melhorRelevancia = Math.max(...seguros.map((item) => Number(item.relevancia || 0)), 0);
-    const corteDinamico = Math.max(0.35, melhorRelevancia * 0.22);
-    const aderentes = seguros.filter((item) => Number(item.relevancia || 0) >= corteDinamico).slice(0, 8);
+    const corteDinamico = consultaComposta ? 0.35 : Math.max(0.35, melhorRelevancia * 0.22);
+    const aderentes = seguros.filter((item) => Number(item.relevancia || 0) >= corteDinamico).slice(0, consultaComposta ? 10 : 8);
     setResposta(aderentes.map((x) => ({ ...x, normas: { titulo: x.titulo, status: normalizarStatus(x.status) } })));
     setConsultando(false);
   }
@@ -185,15 +203,17 @@ export default function App() {
     const principal = resposta[0];
     const qualidade = qualidadeDaAderencia(principal.relevancia);
     const metadadosPrincipal = normas.find((n) => chaveNorma(n.titulo) === chaveNorma(principal.titulo));
-    const fundamentos = resposta.slice(0, 4);
+    const fundamentos = resposta.slice(0, 6);
     const normasUnicas = [...new Set(fundamentos.map((r) => r.titulo))];
     const statusEncontrados = [...new Set(fundamentos.map((r) => normalizarStatus(r.status)))];
+    const aspectos = [...new Set(fundamentos.map((r) => r.aspecto).filter(Boolean))] as string[];
     const observacoes: string[] = [];
     if (statusEncontrados.some((s) => s !== 'Vigente')) observacoes.push('Há fundamento vigente com alterações; considere a redação consolidada e a cadeia normativa.');
     if (metadadosPrincipal?.observacaoVigencia) observacoes.push(metadadosPrincipal.observacaoVigencia);
     if (normasUnicas.length > 1) observacoes.push(`A consulta foi sustentada por ${normasUnicas.length} normas relacionadas ao tema.`);
+    if (aspectos.length > 1) observacoes.push(`A pergunta contém ${aspectos.length} aspectos normativos e foi analisada separadamente por assunto.`);
     if (!qualidade.conclusiva) observacoes.push('A aderência é baixa; o primeiro resultado não é apresentado como conclusão automática.');
-    return { principal, qualidade, metadadosPrincipal, fundamentos, observacoes };
+    return { principal, qualidade, metadadosPrincipal, fundamentos, aspectos, observacoes };
   }, [resposta, normas]);
 
   const possuiAlerta = resposta?.some((r) => normalizarStatus(r.status) !== 'Vigente');
@@ -226,14 +246,7 @@ export default function App() {
               {statusNormas && statusNormas.length > 0 && (
                 <section className="structured-answer">
                   <div className="structured-head"><div><span>VERIFICAÇÃO DE VIGÊNCIA</span><h2>{pergunta}</h2></div><i className={`badge ${statusSlug(normalizarStatus(statusNormas[0].status))}`}>{normalizarStatus(statusNormas[0].status)}</i></div>
-                  <div className="answer-block primary-block">
-                    <h3>Resultado principal</h3>
-                    <p><b>{statusNormas[0].titulo}</b></p>
-                    <p>{statusNormas[0].status_detalhado || normalizarStatus(statusNormas[0].status)}</p>
-                    {statusNormas[0].observacao_vigencia && <p>{statusNormas[0].observacao_vigencia}</p>}
-                    <p><b>Uso como fundamento automático:</b> {statusNormas[0].usar_como_fundamento ? 'permitido' : 'bloqueado'}</p>
-                    {statusNormas[0].ultima_verificacao && <p><b>Última verificação:</b> {statusNormas[0].ultima_verificacao.split('-').reverse().join('/')}</p>}
-                  </div>
+                  <div className="answer-block primary-block"><h3>Resultado principal</h3><p><b>{statusNormas[0].titulo}</b></p><p>{statusNormas[0].status_detalhado || normalizarStatus(statusNormas[0].status)}</p>{statusNormas[0].observacao_vigencia && <p>{statusNormas[0].observacao_vigencia}</p>}<p><b>Uso como fundamento automático:</b> {statusNormas[0].usar_como_fundamento ? 'permitido' : 'bloqueado'}</p>{statusNormas[0].ultima_verificacao && <p><b>Última verificação:</b> {statusNormas[0].ultima_verificacao.split('-').reverse().join('/')}</p>}</div>
                   {statusNormas[0].relacoes?.length ? <div className="norm-chain"><strong>Cadeia normativa</strong>{statusNormas[0].relacoes.map((r, i) => <span key={`${r.tipo}-${i}`}>{rotuloRelacao(r.tipo)}: {r.norma_relacionada}{r.dispositivo ? ` — ${r.dispositivo}` : ''}</span>)}</div> : null}
                   {statusNormas.length > 1 && <div className="answer-block observations-block"><h3>Outras correspondências</h3>{statusNormas.slice(1, 4).map((n) => <p key={n.norma_id}>{n.titulo} — <b>{normalizarStatus(n.status)}</b></p>)}</div>}
                   <div className="answer-block observations-block"><small>Esta consulta informa a situação cadastrada da norma. Norma revogada, superada, alteradora ou com vigência não confirmada não é usada automaticamente como fundamento material.</small></div>
@@ -246,9 +259,11 @@ export default function App() {
 
               {sintese && sintese.qualidade.conclusiva && (
                 <section className="structured-answer">
-                  <div className="structured-head"><div><span>RESPOSTA FUNDAMENTADA</span><h2>{pergunta}</h2></div><div className="structured-badges"><span className={`quality-badge ${sintese.qualidade.slug}`}>{sintese.qualidade.rotulo}</span><i className={`badge ${statusSlug(normalizarStatus(sintese.principal.status))}`}>{normalizarStatus(sintese.principal.status)}</i></div></div>
-                  <div className="answer-block primary-block"><h3>Resposta</h3><p>{sintese.principal.conteudo}</p></div>
-                  <div className="answer-grid"><div className="answer-block"><h3>Fundamentação</h3>{sintese.fundamentos.map((f, i) => <div className="foundation-line" key={`${f.trecho_id || f.id}-${i}`}><b>{f.titulo}</b><span>{f.dispositivo || 'Dispositivo não informado'}{f.pagina ? ` • pág. ${f.pagina}` : ''}</span></div>)}</div><div className="answer-block"><h3>Situação normativa</h3><p><b>Aderência:</b> {sintese.qualidade.rotulo}</p><p><b>Fundamento:</b> {normalizarStatus(sintese.principal.status)}</p>{sintese.metadadosPrincipal?.statusDetalhado && <p>{sintese.metadadosPrincipal.statusDetalhado}</p>}{sintese.metadadosPrincipal?.ultimaVerificacao && <p><b>Última verificação:</b> {sintese.metadadosPrincipal.ultimaVerificacao.split('-').reverse().join('/')}</p>}</div></div>
+                  <div className="structured-head"><div><span>{sintese.aspectos.length > 1 ? 'RESPOSTA COMPOSTA FUNDAMENTADA' : 'RESPOSTA FUNDAMENTADA'}</span><h2>{pergunta}</h2></div><div className="structured-badges"><span className={`quality-badge ${sintese.qualidade.slug}`}>{sintese.qualidade.rotulo}</span><i className={`badge ${statusSlug(normalizarStatus(sintese.principal.status))}`}>{normalizarStatus(sintese.principal.status)}</i></div></div>
+                  {sintese.aspectos.length > 1 && <div className="answer-block aspects-block"><h3>Aspectos identificados</h3><div className="aspect-list">{sintese.aspectos.map((aspecto) => <span className="aspect-badge" key={aspecto}>{aspecto}</span>)}</div></div>}
+                  <div className="answer-block primary-block"><h3>{sintese.aspectos.length > 1 ? 'Primeiro fundamento' : 'Resposta'}</h3><p>{sintese.principal.conteudo}</p></div>
+                  {sintese.aspectos.length > 1 && <div className="answer-block"><h3>Fundamentos por aspecto</h3>{sintese.aspectos.map((aspecto) => { const f = sintese.fundamentos.find((item) => item.aspecto === aspecto); return f ? <div className="foundation-line" key={aspecto}><b>{aspecto}</b><span>{f.titulo} — {f.dispositivo || 'Dispositivo não informado'}</span><p>{f.conteudo}</p></div> : null; })}</div>}
+                  <div className="answer-grid"><div className="answer-block"><h3>Fundamentação</h3>{sintese.fundamentos.map((f, i) => <div className="foundation-line" key={`${f.trecho_id || f.id}-${i}`}><b>{f.aspecto ? `${f.aspecto}: ` : ''}{f.titulo}</b><span>{f.dispositivo || 'Dispositivo não informado'}{f.pagina ? ` • pág. ${f.pagina}` : ''}</span></div>)}</div><div className="answer-block"><h3>Situação normativa</h3><p><b>Aderência:</b> {sintese.qualidade.rotulo}</p><p><b>Fundamento:</b> {normalizarStatus(sintese.principal.status)}</p>{sintese.metadadosPrincipal?.statusDetalhado && <p>{sintese.metadadosPrincipal.statusDetalhado}</p>}{sintese.metadadosPrincipal?.ultimaVerificacao && <p><b>Última verificação:</b> {sintese.metadadosPrincipal.ultimaVerificacao.split('-').reverse().join('/')}</p>}</div></div>
                   <div className="answer-block observations-block"><h3>Observações</h3>{sintese.observacoes.length ? sintese.observacoes.map((o, i) => <p key={`${o}-${i}`}>• {o}</p>) : <p>Não foi identificado alerta adicional de vigência.</p>}<small>Síntese baseada somente nos trechos recuperados do banco.</small></div>
                 </section>
               )}
@@ -260,7 +275,7 @@ export default function App() {
                     const metadados = normas.find((n) => chaveNorma(n.titulo) === chaveNorma(r.titulo));
                     const relacoes = r.relacoes?.length ? r.relacoes.map((x) => `${rotuloRelacao(x.tipo)}: ${x.norma_relacionada}${x.dispositivo ? ` — ${x.dispositivo}` : ''}`) : metadados?.relacoes || [];
                     const qualidade = qualidadeDaAderencia(r.relevancia);
-                    return <article key={`${r.trecho_id || r.id || idx}`}><div className="result-title"><b>{r.titulo}</b><div className="result-badges"><span className={`quality-badge ${qualidade.slug}`}>{qualidade.rotulo}</span><i className={`badge ${statusSlug(status)}`}>{status}</i></div></div><span>{r.dispositivo || 'Dispositivo não informado'}{r.pagina ? ` • pág. ${r.pagina}` : ''}</span><p>{r.conteudo}</p><div className="source-meta"><strong>Fundamento:</strong> {r.titulo}{r.dispositivo ? ` — ${r.dispositivo}` : ''}<br /><strong>Aderência:</strong> {qualidade.rotulo}{typeof r.relevancia === 'number' ? ` • índice ${r.relevancia.toFixed(2)}` : ''}<br /><strong>Situação:</strong> {metadados?.statusDetalhado || status}{metadados?.observacaoVigencia && <><br /><strong>Observação:</strong> {metadados.observacaoVigencia}</>}</div>{relacoes.length > 0 && <div className="norm-chain"><strong>Cadeia normativa</strong>{relacoes.map((relacao, i) => <span key={`${relacao}-${i}`}>{relacao}</span>)}</div>}</article>;
+                    return <article key={`${r.trecho_id || r.id || idx}`}><div className="result-title"><b>{r.titulo}</b><div className="result-badges">{r.aspecto && <span className="aspect-badge">{r.aspecto}</span>}<span className={`quality-badge ${qualidade.slug}`}>{qualidade.rotulo}</span><i className={`badge ${statusSlug(status)}`}>{status}</i></div></div><span>{r.dispositivo || 'Dispositivo não informado'}{r.pagina ? ` • pág. ${r.pagina}` : ''}</span><p>{r.conteudo}</p><div className="source-meta"><strong>Fundamento:</strong> {r.titulo}{r.dispositivo ? ` — ${r.dispositivo}` : ''}{r.aspecto && <><br /><strong>Aspecto:</strong> {r.aspecto}</>}<br /><strong>Aderência:</strong> {qualidade.rotulo}{typeof r.relevancia === 'number' ? ` • índice ${r.relevancia.toFixed(2)}` : ''}<br /><strong>Situação:</strong> {metadados?.statusDetalhado || status}{metadados?.observacaoVigencia && <><br /><strong>Observação:</strong> {metadados.observacaoVigencia}</>}</div>{relacoes.length > 0 && <div className="norm-chain"><strong>Cadeia normativa</strong>{relacoes.map((relacao, i) => <span key={`${relacao}-${i}`}>{relacao}</span>)}</div>}</article>;
                   })}
                 </div>
               )}
