@@ -37,12 +37,17 @@ export default function App() {
       .then(({ data }) => {
         if (!data?.length) return;
 
-        const normasRemotas = data.map((n: any) => ({
-          ...n,
-          status: normalizarStatus(n.status),
-        })) as Norma[];
+        const catalogo = new Map(normasLocais.map((n) => [n.id, n]));
+        data.forEach((n: any) => {
+          const local = catalogo.get(n.id);
+          catalogo.set(n.id, {
+            ...local,
+            ...n,
+            status: normalizarStatus(n.status),
+          } as Norma);
+        });
 
-        setNormas(normasRemotas);
+        setNormas([...catalogo.values()].sort((a, b) => b.ano - a.ano || a.titulo.localeCompare(b.titulo)));
       });
   }, []);
 
