@@ -173,6 +173,36 @@ export default function App() {
     revogadas: normas.filter((n) => n.status === 'Revogada').length,
   }), [normas]);
 
+  const sintese = useMemo(() => {
+    if (!resposta?.length) return null;
+
+    const principal = resposta[0];
+    const metadadosPrincipal = normas.find((n) => chaveNorma(n.titulo) === chaveNorma(principal.titulo));
+    const fundamentos = resposta.slice(0, 4);
+    const normasUnicas = [...new Set(fundamentos.map((r) => r.titulo))];
+    const statusEncontrados = [...new Set(fundamentos.map((r) => normalizarStatus(r.status)))];
+    const observacoes: string[] = [];
+
+    if (statusEncontrados.some((s) => s !== 'Vigente')) {
+      observacoes.push('Há fundamento vigente com alterações; a leitura deve considerar a redação consolidada e a cadeia normativa exibida abaixo.');
+    }
+    if (metadadosPrincipal?.observacaoVigencia) {
+      observacoes.push(metadadosPrincipal.observacaoVigencia);
+    }
+    if (normasUnicas.length > 1) {
+      observacoes.push(`A consulta foi sustentada por ${normasUnicas.length} normas relacionadas ao tema.`);
+    }
+
+    return {
+      principal,
+      metadadosPrincipal,
+      fundamentos,
+      normasUnicas,
+      statusEncontrados,
+      observacoes,
+    };
+  }, [resposta, normas]);
+
   const possuiAlerta = resposta?.some((r) => normalizarStatus(r.status) !== 'Vigente');
 
   return (
@@ -212,7 +242,7 @@ export default function App() {
                 </button>
               </div>
 
-              <small>A consulta não usa normas revogadas, materialmente superadas, atos meramente alteradores ou normas com vigência não confirmada como fundamento automático.</small>
+              <small>A resposta é montada exclusivamente a partir de trechos da base considerados seguros para fundamentação automática.</small>
 
               {erroConsulta && (
                 <div className="answer empty">
@@ -221,12 +251,62 @@ export default function App() {
                 </div>
               )}
 
+              {sintese && (
+                <section className="structured-answer">
+                  <div className="structured-head">
+                    <div>
+                      <span>RESPOSTA FUNDAMENTADA</span>
+                      <h2>{pergunta}</h2>
+                    </div>
+                    <i className={`badge ${statusSlug(normalizarStatus(sintese.principal.status))}`}>
+                      {normalizarStatus(sintese.principal.status)}
+                    </i>
+                  </div>
+
+                  <div className="answer-block primary-block">
+                    <h3>Resposta</h3>
+                    <p>{sintese.principal.conteudo}</p>
+                  </div>
+
+                  <div className="answer-grid">
+                    <div className="answer-block">
+                      <h3>Fundamentação</h3>
+                      {sintese.fundamentos.map((f, i) => (
+                        <div className="foundation-line" key={`${f.id}-${i}`}>
+                          <b>{f.titulo}</b>
+                          <span>{f.dispositivo || 'Dispositivo não informado'}{f.pagina ? ` • pág. ${f.pagina}` : ''}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="answer-block">
+                      <h3>Situação normativa</h3>
+                      <p><b>Fundamento principal:</b> {normalizarStatus(sintese.principal.status)}</p>
+                      {sintese.metadadosPrincipal?.statusDetalhado && <p>{sintese.metadadosPrincipal.statusDetalhado}</p>}
+                      {sintese.metadadosPrincipal?.ultimaVerificacao && (
+                        <p><b>Última verificação:</b> {sintese.metadadosPrincipal.ultimaVerificacao.split('-').reverse().join('/')}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="answer-block observations-block">
+                    <h3>Observações</h3>
+                    {sintese.observacoes.length > 0 ? (
+                      sintese.observacoes.map((o, i) => <p key={`${o}-${i}`}>• {o}</p>)
+                    ) : (
+                      <p>Não foi identificado alerta adicional de vigência nos fundamentos selecionados.</p>
+                    )}
+                    <small>Síntese automática baseada somente nos trechos recuperados. Para decisões administrativas ou jurídicas, confira o dispositivo integral e a versão oficial consolidada.</small>
+                  </div>
+                </section>
+              )}
+
               {Array.isArray(resposta) && resposta.length > 0 && (
-                <div className="answer">
+                <div className="answer detailed-sources">
                   <div className="answer-head">
                     <div>
-                      <h3>Fundamentos encontrados</h3>
-                      <p>{resposta.length} fonte{resposta.length > 1 ? 's' : ''} localizada{resposta.length > 1 ? 's' : ''}. Resultados priorizam normas vigentes e consolidadas.</p>
+                      <h3>Fontes e trechos utilizados</h3>
+                      <p>{resposta.length} fundamento{resposta.length > 1 ? 's' : ''} seguro{resposta.length > 1 ? 's' : ''} localizado{resposta.length > 1 ? 's' : ''}.</p>
                     </div>
                     {possuiAlerta && <span className="attention">Atenção à vigência</span>}
                   </div>
@@ -273,7 +353,7 @@ export default function App() {
             </section>
 
             <section className="features">
-              <article><BookOpen /><h3>Resposta fundamentada</h3><p>Exibe norma, dispositivo, situação de vigência e trecho utilizado.</p></article>
+              <article><BookOpen /><h3>Resposta fundamentada</h3><p>Entrega resposta, fundamento, vigência e observações em blocos separados.</p></article>
               <article><ShieldCheck /><h3>Controle de vigência</h3><p>Distingue normas vigentes, parcialmente vigentes, alteradoras, revogadas e pendentes.</p></article>
               <article><FileSearch /><h3>Cadeia normativa</h3><p>Mostra atos que alteram, revogam, substituem ou complementam o fundamento localizado.</p></article>
             </section>
