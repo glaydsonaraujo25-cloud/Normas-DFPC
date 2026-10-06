@@ -25,7 +25,34 @@ type RelacaoBanco = {
   observacoes?: string | null;
 };
 
+type TemaId = 'todos' | 'armas' | 'municoes' | 'cac' | 'explosivos' | 'blindagem' | 'comercio_exterior' | 'sisfpc' | 'seguranca_privada';
+
+type QualidadeAderencia = {
+  rotulo: 'Alta aderência' | 'Aderência moderada' | 'Aderência baixa';
+  slug: 'alta' | 'moderada' | 'baixa';
+  conclusiva: boolean;
+};
+
+const TEMAS: Array<{ id: TemaId; rotulo: string; contexto: string }> = [
+  { id: 'todos', rotulo: 'Todos', contexto: '' },
+  { id: 'armas', rotulo: 'Armas', contexto: 'arma de fogo armas calibre registro aquisição porte' },
+  { id: 'municoes', rotulo: 'Munições', contexto: 'munição munições marcação rastreabilidade aquisição recarga' },
+  { id: 'cac', rotulo: 'CAC', contexto: 'CAC colecionador atirador caçador tiro desportivo guia de tráfego CR' },
+  { id: 'explosivos', rotulo: 'Explosivos', contexto: 'explosivos detonação nitrato de amônio SICOEX armazenamento transporte' },
+  { id: 'blindagem', rotulo: 'Blindagem', contexto: 'blindagem proteção balística EPBI SICOVAB veículo blindado colete balístico' },
+  { id: 'comercio_exterior', rotulo: 'Importação / Exportação', contexto: 'importação exportação comércio exterior PCE LPCO DUIMP Siscomex' },
+  { id: 'sisfpc', rotulo: 'SisFPC', contexto: 'SisFPC registro fiscalização autorização DFPC SFPC PCE' },
+  { id: 'seguranca_privada', rotulo: 'Segurança Privada', contexto: 'segurança privada Polícia Federal PCE menor potencial ofensivo vigilância' },
+];
+
 const chaveNorma = (titulo: string) => titulo.trim().toLowerCase();
+
+const qualidadeDaAderencia = (relevancia?: number): QualidadeAderencia => {
+  const valor = Number(relevancia || 0);
+  if (valor >= 3) return { rotulo: 'Alta aderência', slug: 'alta', conclusiva: true };
+  if (valor >= 1.2) return { rotulo: 'Aderência moderada', slug: 'moderada', conclusiva: true };
+  return { rotulo: 'Aderência baixa', slug: 'baixa', conclusiva: false };
+};
 
 const rotuloRelacao = (tipo: string) => {
   const mapa: Record<string, string> = {
@@ -46,6 +73,7 @@ export default function App() {
   const [tab, setTab] = useState<'consulta' | 'base'>('consulta');
   const [q, setQ] = useState('');
   const [pergunta, setPergunta] = useState('');
+  const [tema, setTema] = useState<TemaId>('todos');
   const [resposta, setResposta] = useState<ResultadoConsulta[] | null>(null);
   const [consultando, setConsultando] = useState(false);
   const [buscaRealizada, setBuscaRealizada] = useState(false);
@@ -123,9 +151,12 @@ export default function App() {
       return;
     }
 
+    const temaSelecionado = TEMAS.find((item) => item.id === tema);
+    const consultaEfetiva = [pergunta.trim(), temaSelecionado?.contexto].filter(Boolean).join(' ');
+
     const { data: achados, error } = await supabase.rpc('consultar_base_normativa', {
-      consulta: pergunta,
-      limite: 8,
+      consulta: consultaEfetiva,
+      limite: 12,
     });
 
     if (error) {
@@ -146,8 +177,12 @@ export default function App() {
       return !['Revogada', 'Superada materialmente', 'Vigência a confirmar', 'Ato alterador'].includes(status);
     });
 
+    const melhorRelevancia = Math.max(...seguros.map((item) => Number(item.relevancia || 0)), 0);
+    const corteDinamico = Math.max(0.35, melhorRelevancia * 0.22);
+    const aderentes = seguros.filter((item) => Number(item.relevancia || 0) >= corteDinamico).slice(0, 8);
+
     setResposta(
-      seguros.map((x: any) => ({
+      aderentes.map((x: any) => ({
         ...x,
         normas: { titulo: x.titulo, status: normalizarStatus(x.status) },
       })),
@@ -177,6 +212,7 @@ export default function App() {
     if (!resposta?.length) return null;
 
     const principal = resposta[0];
+    const qualidade = qualidadeDaAderencia(principal.relevancia);
     const metadadosPrincipal = normas.find((n) => chaveNorma(n.titulo) === chaveNorma(principal.titulo));
     const fundamentos = resposta.slice(0, 4);
     const normasUnicas = [...new Set(fundamentos.map((r) => r.titulo))];
@@ -192,6 +228,9 @@ export default function App() {
     if (normasUnicas.length > 1) {
       observacoes.push(`A consulta foi sustentada por ${normasUnicas.length} normas relacionadas ao tema.`);
     }
+    if (!qualidade.conclusiva) {
+      observacoes.push('A aderência entre a pergunta e os trechos encontrados é baixa. A aplicação não apresenta o primeiro resultado como conclusão jurídica automática.');
+    }
 
     return {
       principal,
@@ -200,10 +239,12 @@ export default function App() {
       normasUnicas,
       statusEncontrados,
       observacoes,
+      qualidade,
     };
   }, [resposta, normas]);
 
   const possuiAlerta = resposta?.some((r) => normalizarStatus(r.status) !== 'Vigente');
+  const temaAtual = TEMAS.find((item) => item.id === tema)?.rotulo || 'Todos';
 
   return (
     <>
@@ -227,7 +268,23 @@ export default function App() {
             <section className="hero">
               <div className="eyebrow"><Scale size={16} /> CONSULTA NORMATIVA PCE</div>
               <h1>Encontre respostas fundamentadas<br />nas normas da DFPC.</h1>
-              <p>Consulte a base normativa com controle de vigência, alterações, revogações e rastreabilidade.</p>
+              <p>Consulte a base normativa com controle de vigência, alterações, revogações, aderência temática e rastreabilidade.</p>
+
+              <div className="topic-filters" aria-label="Filtro por tema">
+                {TEMAS.map((item) => (
+                  <button
+                    key={item.id}
+                    className={`topic-chip ${tema === item.id ? 'active' : ''}`}
+                    onClick={() => {
+                      setTema(item.id);
+                      setResposta(null);
+                      setBuscaRealizada(false);
+                    }}
+                  >
+                    {item.rotulo}
+                  </button>
+                ))}
+              </div>
 
               <div className="ask">
                 <Search />
@@ -242,7 +299,7 @@ export default function App() {
                 </button>
               </div>
 
-              <small>A resposta é montada exclusivamente a partir de trechos da base considerados seguros para fundamentação automática.</small>
+              <small>Tema selecionado: <b>{temaAtual}</b>. A resposta usa apenas trechos seguros e informa o grau de aderência da pesquisa.</small>
 
               {erroConsulta && (
                 <div className="answer empty">
@@ -251,16 +308,32 @@ export default function App() {
                 </div>
               )}
 
-              {sintese && (
+              {sintese && !sintese.qualidade.conclusiva && (
+                <div className="answer confidence-warning">
+                  <div className="answer-head">
+                    <div>
+                      <h3>Resultado insuficiente para conclusão</h3>
+                      <p>Foram encontrados trechos relacionados, mas a aderência da melhor correspondência ainda é baixa.</p>
+                    </div>
+                    <span className={`quality-badge ${sintese.qualidade.slug}`}>{sintese.qualidade.rotulo}</span>
+                  </div>
+                  <p>Refine a pergunta, informe o assunto com mais detalhes ou selecione um tema específico. Os trechos encontrados permanecem disponíveis abaixo para conferência.</p>
+                </div>
+              )}
+
+              {sintese && sintese.qualidade.conclusiva && (
                 <section className="structured-answer">
                   <div className="structured-head">
                     <div>
                       <span>RESPOSTA FUNDAMENTADA</span>
                       <h2>{pergunta}</h2>
                     </div>
-                    <i className={`badge ${statusSlug(normalizarStatus(sintese.principal.status))}`}>
-                      {normalizarStatus(sintese.principal.status)}
-                    </i>
+                    <div className="structured-badges">
+                      <span className={`quality-badge ${sintese.qualidade.slug}`}>{sintese.qualidade.rotulo}</span>
+                      <i className={`badge ${statusSlug(normalizarStatus(sintese.principal.status))}`}>
+                        {normalizarStatus(sintese.principal.status)}
+                      </i>
+                    </div>
                   </div>
 
                   <div className="answer-block primary-block">
@@ -281,6 +354,7 @@ export default function App() {
 
                     <div className="answer-block">
                       <h3>Situação normativa</h3>
+                      <p><b>Aderência:</b> {sintese.qualidade.rotulo}</p>
                       <p><b>Fundamento principal:</b> {normalizarStatus(sintese.principal.status)}</p>
                       {sintese.metadadosPrincipal?.statusDetalhado && <p>{sintese.metadadosPrincipal.statusDetalhado}</p>}
                       {sintese.metadadosPrincipal?.ultimaVerificacao && (
@@ -317,17 +391,22 @@ export default function App() {
                     const relacoes = r.relacoes?.length
                       ? r.relacoes.map((x) => `${rotuloRelacao(x.tipo)}: ${x.norma_relacionada}${x.dispositivo ? ` — ${x.dispositivo}` : ''}`)
                       : metadados?.relacoes || [];
+                    const qualidade = qualidadeDaAderencia(r.relevancia);
 
                     return (
                       <article key={r.id}>
                         <div className="result-title">
                           <b>{r.normas?.titulo || r.titulo}</b>
-                          <i className={`badge ${statusSlug(status)}`}>{status}</i>
+                          <div className="result-badges">
+                            <span className={`quality-badge ${qualidade.slug}`}>{qualidade.rotulo}</span>
+                            <i className={`badge ${statusSlug(status)}`}>{status}</i>
+                          </div>
                         </div>
                         <span>{r.dispositivo || 'Dispositivo não informado'}{r.pagina ? ` • pág. ${r.pagina}` : ''}</span>
                         <p>{r.conteudo}</p>
                         <div className="source-meta">
                           <strong>Fundamento:</strong> {r.titulo}{r.dispositivo ? ` — ${r.dispositivo}` : ''}{r.pagina ? ` — pág. ${r.pagina}` : ''}<br />
+                          <strong>Aderência:</strong> {qualidade.rotulo}{typeof r.relevancia === 'number' ? ` • índice ${r.relevancia.toFixed(2)}` : ''}<br />
                           <strong>Situação:</strong> {metadados?.statusDetalhado || status}
                           {metadados?.ultimaVerificacao && <><br /><strong>Última verificação:</strong> {metadados.ultimaVerificacao.split('-').reverse().join('/')}</>}
                           {metadados?.observacaoVigencia && <><br /><strong>Observação de vigência:</strong> {metadados.observacaoVigencia}</>}
@@ -353,9 +432,9 @@ export default function App() {
             </section>
 
             <section className="features">
-              <article><BookOpen /><h3>Resposta fundamentada</h3><p>Entrega resposta, fundamento, vigência e observações em blocos separados.</p></article>
+              <article><BookOpen /><h3>Resposta fundamentada</h3><p>Entrega resposta, fundamento, vigência, aderência e observações em blocos separados.</p></article>
               <article><ShieldCheck /><h3>Controle de vigência</h3><p>Distingue normas vigentes, parcialmente vigentes, alteradoras, revogadas e pendentes.</p></article>
-              <article><FileSearch /><h3>Cadeia normativa</h3><p>Mostra atos que alteram, revogam, substituem ou complementam o fundamento localizado.</p></article>
+              <article><FileSearch /><h3>Aderência e cadeia normativa</h3><p>Evita conclusões com resultados fracos e mostra atos que alteram, revogam, substituem ou complementam o fundamento.</p></article>
             </section>
           </>
         ) : (
