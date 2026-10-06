@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { BookOpen, FileSearch, Scale, Search, ShieldCheck } from 'lucide-react';
 import { normas as normasLocais } from './data/normas';
 import { supabase } from './lib/supabase';
-import { normalizarStatus, ordenarPorSeguranca, statusSlug } from './lib/normas';
+import { normalizarStatus, ordenarPorSeguranca, podeFundamentar, statusSlug } from './lib/normas';
 import type { Norma } from './types';
 
 type ResultadoConsulta = {
@@ -13,8 +13,33 @@ type ResultadoConsulta = {
   conteudo: string;
   status?: string;
   relevancia?: number;
-  relacoes?: Array<{ tipo: string; norma_relacionada: string; dispositivo?: string }>;
+  relacoes?: Array<{ tipo: string; norma_relacionada: string; dispositivo?: string; observacoes?: string }>;
   normas?: { titulo: string; status: string };
+};
+
+type RelacaoBanco = {
+  norma_origem_id: string;
+  norma_destino_id: string;
+  tipo: string;
+  dispositivo?: string | null;
+  observacoes?: string | null;
+};
+
+const chaveNorma = (titulo: string) => titulo.trim().toLowerCase();
+
+const rotuloRelacao = (tipo: string) => {
+  const mapa: Record<string, string> = {
+    altera: 'Altera',
+    alterada_por: 'Alterada por',
+    revoga: 'Revoga',
+    revogada_por: 'Revogada por',
+    complementa: 'Complementa',
+    regulamenta: 'Regulamenta',
+    substitui: 'Substitui',
+    consolida: 'Consolida',
+    cita: 'Cita',
+  };
+  return mapa[tipo] || tipo.replaceAll('_', ' ');
 };
 
 export default function App() {
@@ -30,25 +55,59 @@ export default function App() {
   useEffect(() => {
     if (!supabase) return;
 
-    supabase
-      .from('normas')
-      .select('id,tipo,numero,ano,titulo,assunto,status')
-      .order('ano', { ascending: false })
-      .then(({ data }) => {
-        if (!data?.length) return;
+    Promise.all([
+      supabase
+        .from('normas')
+        .select('id,tipo,numero,ano,titulo,orgao,data_norma,assunto,status,status_detalhado,norma_principal,usar_como_fundamento,vigencia_inicio,vigencia_fim,ultima_verificacao,observacao_vigencia,palavras_chave')
+        .order('ano', { ascending: false }),
+      supabase
+        .from('relacoes_normativas')
+        .select('norma_origem_id,norma_destino_id,tipo,dispositivo,observacoes'),
+    ]).then(([normasRes, relacoesRes]) => {
+      if (!normasRes.data?.length) return;
 
-        const catalogo = new Map(normasLocais.map((n) => [n.id, n]));
-        data.forEach((n: any) => {
-          const local = catalogo.get(n.id);
-          catalogo.set(n.id, {
-            ...local,
-            ...n,
-            status: normalizarStatus(n.status),
-          } as Norma);
-        });
+      const dados = normasRes.data as any[];
+      const tituloPorId = new Map(dados.map((n) => [n.id, n.titulo]));
+      const relacoesPorNorma = new Map<string, string[]>();
 
-        setNormas([...catalogo.values()].sort((a, b) => b.ano - a.ano || a.titulo.localeCompare(b.titulo)));
+      ((relacoesRes.data || []) as RelacaoBanco[]).forEach((r) => {
+        const destino = tituloPorId.get(r.norma_destino_id);
+        if (!destino) return;
+        const atual = relacoesPorNorma.get(r.norma_origem_id) || [];
+        atual.push(`${rotuloRelacao(r.tipo)}: ${destino}${r.dispositivo ? ` — ${r.dispositivo}` : ''}`);
+        relacoesPorNorma.set(r.norma_origem_id, atual);
       });
+
+      const catalogo = new Map(normasLocais.map((n) => [chaveNorma(n.titulo), n]));
+
+      dados.forEach((n) => {
+        const chave = chaveNorma(n.titulo);
+        const local = catalogo.get(chave);
+        catalogo.set(chave, {
+          ...local,
+          id: n.id,
+          tipo: n.tipo,
+          numero: n.numero,
+          ano: n.ano,
+          titulo: n.titulo,
+          assunto: n.assunto,
+          orgao: n.orgao || undefined,
+          dataPublicacao: n.data_norma || undefined,
+          vigenciaInicio: n.vigencia_inicio || undefined,
+          vigenciaFim: n.vigencia_fim || null,
+          status: normalizarStatus(n.status),
+          statusDetalhado: n.status_detalhado || undefined,
+          normaPrincipal: n.norma_principal ?? undefined,
+          usarComoFundamento: n.usar_como_fundamento ?? undefined,
+          ultimaVerificacao: n.ultima_verificacao || undefined,
+          observacaoVigencia: n.observacao_vigencia || undefined,
+          palavrasChave: n.palavras_chave || [],
+          relacoes: relacoesPorNorma.get(n.id) || local?.relacoes || [],
+        } as Norma);
+      });
+
+      setNormas([...catalogo.values()].sort((a, b) => b.ano - a.ano || a.titulo.localeCompare(b.titulo)));
+    });
   }, []);
 
   async function consultar() {
@@ -99,13 +158,20 @@ export default function App() {
   const filtered = useMemo(() => {
     const termo = q.toLowerCase();
     return normas.filter((n) =>
-      [n.titulo, n.assunto, n.status, n.statusDetalhado, ...(n.palavrasChave || [])]
+      [n.titulo, n.assunto, n.status, n.statusDetalhado, n.orgao, ...(n.palavrasChave || [])]
         .filter(Boolean)
         .join(' ')
         .toLowerCase()
         .includes(termo),
     );
   }, [q, normas]);
+
+  const resumoBase = useMemo(() => ({
+    total: normas.length,
+    aptas: normas.filter(podeFundamentar).length,
+    atencao: normas.filter((n) => ['Parcialmente vigente', 'Vigência a confirmar', 'Superada materialmente'].includes(n.status)).length,
+    revogadas: normas.filter((n) => n.status === 'Revogada').length,
+  }), [normas]);
 
   const possuiAlerta = resposta?.some((r) => normalizarStatus(r.status) !== 'Vigente');
 
@@ -167,23 +233,31 @@ export default function App() {
 
                   {resposta.map((r) => {
                     const status = normalizarStatus(r.status);
+                    const metadados = normas.find((n) => chaveNorma(n.titulo) === chaveNorma(r.titulo));
+                    const relacoes = r.relacoes?.length
+                      ? r.relacoes.map((x) => `${rotuloRelacao(x.tipo)}: ${x.norma_relacionada}${x.dispositivo ? ` — ${x.dispositivo}` : ''}`)
+                      : metadados?.relacoes || [];
+
                     return (
                       <article key={r.id}>
-                        <b>{r.normas?.titulo || r.titulo}</b>
-                        <span>{r.dispositivo}{r.pagina ? ` • pág. ${r.pagina}` : ''}</span>
+                        <div className="result-title">
+                          <b>{r.normas?.titulo || r.titulo}</b>
+                          <i className={`badge ${statusSlug(status)}`}>{status}</i>
+                        </div>
+                        <span>{r.dispositivo || 'Dispositivo não informado'}{r.pagina ? ` • pág. ${r.pagina}` : ''}</span>
                         <p>{r.conteudo}</p>
                         <div className="source-meta">
-                          <strong>Fonte:</strong> {r.titulo}{r.dispositivo ? ` — ${r.dispositivo}` : ''}{r.pagina ? ` — pág. ${r.pagina}` : ''}<br />
-                          <strong>Situação:</strong> <i className={`badge ${statusSlug(status)}`}>{status}</i>
-                          {Array.isArray(r.relacoes) && r.relacoes.length > 0 && (
-                            <>
-                              <br /><strong>Relações normativas:</strong>
-                              {r.relacoes.map((x, i) => (
-                                <span key={`${x.tipo}-${x.norma_relacionada}-${i}`}> {x.tipo} — {x.norma_relacionada}{x.dispositivo ? ` (${x.dispositivo})` : ''}{i < r.relacoes!.length - 1 ? ';' : ''}</span>
-                              ))}
-                            </>
-                          )}
+                          <strong>Fundamento:</strong> {r.titulo}{r.dispositivo ? ` — ${r.dispositivo}` : ''}{r.pagina ? ` — pág. ${r.pagina}` : ''}<br />
+                          <strong>Situação:</strong> {metadados?.statusDetalhado || status}
+                          {metadados?.ultimaVerificacao && <><br /><strong>Última verificação:</strong> {metadados.ultimaVerificacao.split('-').reverse().join('/')}</>}
+                          {metadados?.observacaoVigencia && <><br /><strong>Observação de vigência:</strong> {metadados.observacaoVigencia}</>}
                         </div>
+                        {relacoes.length > 0 && (
+                          <div className="norm-chain">
+                            <strong>Cadeia normativa</strong>
+                            {relacoes.map((relacao, i) => <span key={`${relacao}-${i}`}>{relacao}</span>)}
+                          </div>
+                        )}
                       </article>
                     );
                   })}
@@ -199,9 +273,9 @@ export default function App() {
             </section>
 
             <section className="features">
-              <article><BookOpen /><h3>Resposta fundamentada</h3><p>Exibe norma, dispositivo e trecho utilizado na resposta.</p></article>
+              <article><BookOpen /><h3>Resposta fundamentada</h3><p>Exibe norma, dispositivo, situação de vigência e trecho utilizado.</p></article>
               <article><ShieldCheck /><h3>Controle de vigência</h3><p>Distingue normas vigentes, parcialmente vigentes, alteradoras, revogadas e pendentes.</p></article>
-              <article><FileSearch /><h3>Relações normativas</h3><p>Registra atos que alteram, revogam, substituem ou complementam outras normas.</p></article>
+              <article><FileSearch /><h3>Cadeia normativa</h3><p>Mostra atos que alteram, revogam, substituem ou complementam o fundamento localizado.</p></article>
             </section>
           </>
         ) : (
@@ -210,27 +284,36 @@ export default function App() {
               <div>
                 <span>BASE DOCUMENTAL</span>
                 <h1>Normas cadastradas</h1>
-                <p>Catálogo estruturado com status de vigência e política de uso como fundamento.</p>
+                <p>Catálogo estruturado com status de vigência, relações normativas e política de uso como fundamento.</p>
               </div>
               <div className="search"><Search /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Pesquisar norma ou assunto" /></div>
             </div>
 
+            <div className="base-stats">
+              <div><b>{resumoBase.total}</b><span>Normas cadastradas</span></div>
+              <div><b>{resumoBase.aptas}</b><span>Aptas a fundamentar</span></div>
+              <div><b>{resumoBase.atencao}</b><span>Exigem atenção</span></div>
+              <div><b>{resumoBase.revogadas}</b><span>Revogadas</span></div>
+            </div>
+
             <div className="table">
-              <div className="tr head"><span>Norma</span><span>Assunto</span><span>Situação</span></div>
+              <div className="tr head"><span>Norma</span><span>Assunto e cadeia normativa</span><span>Situação</span></div>
               {filtered.map((n) => (
                 <div className="tr" key={n.id}>
                   <span>
                     <b>{n.titulo}</b>
-                    <small>{n.tipo} • {n.ano}{n.normaPrincipal === false ? ' • ato de relacionamento' : ''}</small>
+                    <small>{n.tipo} • {n.ano}{n.orgao ? ` • ${n.orgao}` : ''}</small>
+                    <small>{n.normaPrincipal === false ? 'Ato de relacionamento normativo' : n.usarComoFundamento === false ? 'Bloqueada para fundamento automático' : 'Pode ser usada como fundamento'}</small>
                   </span>
                   <span>
                     {n.assunto}
                     {n.statusDetalhado && <small>{n.statusDetalhado}</small>}
-                    {n.relacoes?.map((r) => <small key={r}>{r}</small>)}
+                    {n.relacoes?.map((r) => <small className="relation-line" key={r}>{r}</small>)}
                     {n.observacaoVigencia && <small>{n.observacaoVigencia}</small>}
                   </span>
                   <span>
                     <i className={`badge ${statusSlug(n.status)}`}>{n.status}</i>
+                    {n.vigenciaInicio && <small>Vigência: {n.vigenciaInicio.split('-').reverse().join('/')}</small>}
                     {n.ultimaVerificacao && <small>Verificado em {n.ultimaVerificacao.split('-').reverse().join('/')}</small>}
                   </span>
                 </div>
