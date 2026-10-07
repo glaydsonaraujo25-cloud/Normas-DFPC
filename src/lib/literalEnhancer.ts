@@ -12,8 +12,19 @@ type DispositivoLiteral = {
   conferido: boolean;
 };
 
+type CoberturaLiteral = {
+  norma_id: string;
+  titulo: string;
+  trechos_pesquisaveis: number;
+  dispositivos_conferidos: number;
+  dispositivos_utilizaveis: number;
+  cobertura_percentual: number;
+  nivel_cobertura: 'alta' | 'media' | 'baixa' | 'sem_texto_literal' | 'sem_trechos';
+};
+
 const cacheNorma = new Map<string, string | null>();
 const cacheDispositivos = new Map<string, DispositivoLiteral[]>();
+let cacheCobertura: Map<string, CoberturaLiteral> | null = null;
 let timer: number | undefined;
 
 const normalizar = (valor: string) => valor
@@ -61,10 +72,22 @@ async function dispositivosPorNorma(normaId: string) {
     .eq('norma_id', normaId)
     .eq('conferido', true)
     .in('status', ['vigente', 'alterado', 'vigencia_futura'])
-    .limit(80);
+    .limit(120);
   const itens = (data || []) as DispositivoLiteral[];
   cacheDispositivos.set(normaId, itens);
   return itens;
+}
+
+async function coberturaPorTitulo() {
+  if (cacheCobertura) return cacheCobertura;
+  const mapa = new Map<string, CoberturaLiteral>();
+  if (!supabase) return mapa;
+  const { data } = await supabase
+    .from('v_cobertura_literal')
+    .select('norma_id,titulo,trechos_pesquisaveis,dispositivos_conferidos,dispositivos_utilizaveis,cobertura_percentual,nivel_cobertura');
+  ((data || []) as CoberturaLiteral[]).forEach((item) => mapa.set(item.titulo, item));
+  cacheCobertura = mapa;
+  return mapa;
 }
 
 function criarBloco(dispositivo: DispositivoLiteral) {
@@ -97,6 +120,33 @@ function criarBloco(dispositivo: DispositivoLiteral) {
   return bloco;
 }
 
+function criarIndicadorCobertura(item: CoberturaLiteral) {
+  const wrap = document.createElement('div');
+  wrap.className = `literal-coverage coverage-${item.nivel_cobertura}`;
+  wrap.dataset.literalCoverage = 'true';
+
+  const topo = document.createElement('div');
+  const rotulo = document.createElement('span');
+  rotulo.textContent = 'Cobertura literal dos fundamentos';
+  const valor = document.createElement('b');
+  valor.textContent = `${item.cobertura_percentual}%`;
+  topo.append(rotulo, valor);
+
+  const trilho = document.createElement('div');
+  trilho.className = 'coverage-track';
+  const barra = document.createElement('i');
+  barra.style.width = `${Math.max(0, Math.min(100, item.cobertura_percentual))}%`;
+  trilho.append(barra);
+
+  const detalhe = document.createElement('small');
+  detalhe.textContent = item.trechos_pesquisaveis > 0
+    ? `${item.dispositivos_conferidos} dispositivo(s) literal(is) conferido(s) para ${item.trechos_pesquisaveis} fundamento(s) pesquisável(is). Este percentual não representa a totalidade dos artigos da norma.`
+    : `${item.dispositivos_conferidos} dispositivo(s) literal(is) conferido(s).`;
+
+  wrap.append(topo, trilho, detalhe);
+  return wrap;
+}
+
 async function enriquecerArtigo(article: HTMLElement) {
   if (article.dataset.literalChecked === 'true') return;
   article.dataset.literalChecked = 'true';
@@ -121,9 +171,23 @@ async function enriquecerArtigo(article: HTMLElement) {
   else article.append(criarBloco(melhor.d));
 }
 
+async function enriquecerCoberturaBase() {
+  const mapa = await coberturaPorTitulo();
+  document.querySelectorAll<HTMLElement>('.table .tr:not(.head):not([data-coverage-checked="true"])').forEach((row) => {
+    row.dataset.coverageChecked = 'true';
+    const primeiraColuna = row.children[0] as HTMLElement | undefined;
+    const titulo = primeiraColuna?.querySelector('b')?.textContent?.trim();
+    if (!primeiraColuna || !titulo) return;
+    const cobertura = mapa.get(titulo);
+    if (!cobertura || primeiraColuna.querySelector('[data-literal-coverage="true"]')) return;
+    primeiraColuna.append(criarIndicadorCobertura(cobertura));
+  });
+}
+
 async function executar() {
   const artigos = document.querySelectorAll<HTMLElement>('.detailed-sources article:not([data-literal-checked="true"])');
   await Promise.all(Array.from(artigos).map(enriquecerArtigo));
+  await enriquecerCoberturaBase();
 }
 
 function agendar() {
