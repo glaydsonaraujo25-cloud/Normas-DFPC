@@ -626,13 +626,14 @@ export default function App() {
                     <div className="answer-block warning">
                       <h3>Fundamento insuficiente para responder</h3>
                       <p>
-                        Não localizei um dispositivo conferido e aplicável aos
-                        filtros escolhidos. Isso não significa que a atividade é
-                        dispensada de controle.
+                        {consulta.consulta.referencia_exata
+                          ? "A referência solicitada não possui texto individual conferido e aplicável no acervo."
+                          : "Não localizei um dispositivo conferido e aplicável aos filtros escolhidos. Isso não significa que a atividade é dispensada de controle."}
                       </p>
                       <p>
-                        Especifique o produto e a atividade ou revise os
-                        filtros. A base pode precisar de complementação.
+                        {consulta.consulta.referencia_exata
+                          ? "Confira o número, o ano, o artigo e a seção da norma. Pode ser necessário complementar ou conferir o acervo."
+                          : "Especifique o produto e a atividade ou revise os filtros. A base pode precisar de complementação."}
                       </p>
                     </div>
                   ) : (
@@ -670,12 +671,15 @@ export default function App() {
                         ))
                       ) : (
                         <div className="answer-block primary-block">
-                          <h3>O que a base permite consultar</h3>
+                          <h3>
+                            {consulta.consulta.referencia_exata
+                              ? "Trechos da referência solicitada"
+                              : "O que a base permite consultar"}
+                          </h3>
                           <p>
-                            Foram localizados dispositivos sobre o tema. Ainda
-                            não há uma orientação prática revisada para esta
-                            pergunta específica; confira os requisitos e as
-                            exceções nos fundamentos abaixo.
+                            {consulta.consulta.referencia_exata
+                              ? "Os trechos abaixo podem abranger apenas partes do artigo. Confira a indicação de caput, parágrafo e inciso em cada referência."
+                              : "Foram localizados dispositivos sobre o tema. Ainda não há uma orientação prática revisada para esta pergunta específica; confira os requisitos e as exceções nos fundamentos abaixo."}
                           </p>
                         </div>
                       )}
@@ -703,13 +707,15 @@ export default function App() {
                           ))}
                       </div>
                       <div className="answer-block observations-block">
-                        <h3>Aplicação ao caso</h3>
+                        <h3>
+                          {consulta.consulta.referencia_exata
+                            ? "Conferência da referência"
+                            : "Aplicação ao caso"}
+                        </h3>
                         <p>
-                          Confirme que o produto, a atividade e as condições
-                          descritas nos dispositivos correspondem à operação da
-                          empresa. A busca textual identifica fundamentos; a
-                          classificação de relevância não comprova autorização
-                          ou dispensa.
+                          {consulta.consulta.referencia_exata
+                            ? "A situação exibida corresponde ao cadastro desses dispositivos. Para aplicar a norma a uma operação empresarial, consulte também os demais requisitos e condições pertinentes."
+                            : "Confirme que o produto, a atividade e as condições descritas nos dispositivos correspondem à operação da empresa. A busca textual identifica fundamentos; a classificação de relevância não comprova autorização ou dispensa."}
                         </p>
                         {consulta.consulta.fontes_excluidas > 0 && (
                           <p>
