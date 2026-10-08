@@ -1,18 +1,17 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { ATIVIDADES, PRODUTOS } from "../lib/consulta";
-import type { Orientacao } from "../lib/consulta";
+import { buscarPerguntas } from "../lib/perguntas";
+import type { PerguntaRevisada } from "../lib/perguntas";
 
-type Pergunta = Pick<
-  Orientacao,
-  "id" | "titulo" | "pergunta_modelo" | "produto" | "atividade" | "revisado_em"
->;
 export function PerguntasRevisadas({
   selecionar,
+  relacionada,
 }: {
-  selecionar: (guia: Pergunta) => void;
+  selecionar: (guia: PerguntaRevisada) => void;
+  relacionada?: { pergunta: string; produto: string; atividade: string };
 }) {
-  const [guias, setGuias] = useState<Pergunta[]>([]);
+  const [guias, setGuias] = useState<PerguntaRevisada[]>([]);
   const [busca, setBusca] = useState("");
   const [atividade, setAtividade] = useState("todos");
   const [estado, setEstado] = useState("Carregando perguntas revisadas…");
@@ -39,51 +38,57 @@ export function PerguntasRevisadas({
       ativo = false;
     };
   }, []);
-  const normalizar = (s: string) =>
-    s
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase();
-  const filtrados = guias.filter(
-    (g) =>
-      normalizar(`${g.titulo} ${g.pergunta_modelo}`).includes(
-        normalizar(busca),
-      ) &&
-      (atividade === "todos" || g.atividade === atividade),
+  const filtrados = buscarPerguntas(
+    guias,
+    relacionada?.pergunta ?? busca,
+    relacionada?.atividade ?? atividade,
+    relacionada?.produto ?? "todos",
+    !!relacionada,
   );
+  if (relacionada && !estado && !filtrados.length) return null;
   const rotulo = (lista: readonly (readonly [string, string])[], v: string) =>
     lista.find((o) => o[0] === v)?.[1] || v;
   return (
     <section className="library reviewed-questions">
       <span>ORIENTAÇÕES CADASTRADAS</span>
-      <h2>Perguntas com orientação revisada</h2>
+      <h2>
+        {relacionada
+          ? "Perguntas revisadas relacionadas"
+          : "Perguntas com orientação revisada"}
+      </h2>
       <p>
-        Escolha uma pergunta para preencher a consulta. Ao consultar, a
-        aplicação verifica a situação e as datas dos fundamentos no acervo
-        atual.
+        {relacionada
+          ? "Estas perguntas compartilham termos com sua dúvida. Confira o escopo antes de escolher; a orientação pode abordar outra situação. A seleção prepara uma nova consulta."
+          : "Busque por palavras em qualquer ordem, como ‘munições registros’ ou ‘renovar CR’. Escolha uma pergunta para conferir seus fundamentos no acervo atual."}
       </p>
-      <label>
-        Buscar pergunta revisada
-        <input
-          type="search"
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-        />
-      </label>
-      <label>
-        Filtrar orientações por atividade
-        <select
-          value={atividade}
-          onChange={(e) => setAtividade(e.target.value)}
-        >
-          <option value="todos">Todas as atividades</option>
-          {ATIVIDADES.filter(([id]) => id !== "todos").map(([id, texto]) => (
-            <option key={id} value={id}>
-              {texto}
-            </option>
-          ))}
-        </select>
-      </label>
+      {!relacionada && (
+        <>
+          <label>
+            Buscar pergunta revisada
+            <input
+              type="search"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+            />
+          </label>
+          <label>
+            Filtrar orientações por atividade
+            <select
+              value={atividade}
+              onChange={(e) => setAtividade(e.target.value)}
+            >
+              <option value="todos">Todas as atividades</option>
+              {ATIVIDADES.filter(([id]) => id !== "todos").map(
+                ([id, texto]) => (
+                  <option key={id} value={id}>
+                    {texto}
+                  </option>
+                ),
+              )}
+            </select>
+          </label>
+        </>
+      )}
       {estado ? (
         <p role="status">{estado}</p>
       ) : (

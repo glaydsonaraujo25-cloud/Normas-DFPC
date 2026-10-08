@@ -269,6 +269,21 @@ export default function App() {
     setConsulta(r);
     setTab("consulta");
   }
+  function prepararPergunta(g: {
+    pergunta_modelo: string;
+    produto: string;
+    atividade: string;
+  }) {
+    invalidar();
+    setPergunta(g.pergunta_modelo);
+    setContexto({
+      ...contextoInicial(),
+      produto: g.produto,
+      atividade: g.atividade,
+    });
+    inputRef.current?.focus();
+    inputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
   function sugerir(q: string, atividade = "todos") {
     invalidar();
     setPergunta(q);
@@ -772,24 +787,24 @@ export default function App() {
                 </section>
               )}
             </div>
-            {!consulta && !status && (
-              <PerguntasRevisadas
-                selecionar={(g) => {
-                  invalidar();
-                  setPergunta(g.pergunta_modelo);
-                  setContexto({
-                    ...contextoInicial(),
-                    produto: g.produto,
-                    atividade: g.atividade,
-                  });
-                  inputRef.current?.focus();
-                  inputRef.current?.scrollIntoView({
-                    behavior: "smooth",
-                    block: "center",
-                  });
-                }}
-              />
-            )}
+            {!status &&
+              (!consulta ||
+                (!consulta.consulta.orientacoes.length &&
+                  !consulta.consulta.referencia_exata)) && (
+                <PerguntasRevisadas
+                  key={consulta?.id || "catalogo"}
+                  selecionar={prepararPergunta}
+                  relacionada={
+                    consulta
+                      ? {
+                          pergunta: consulta.pergunta,
+                          produto: consulta.contexto.produto,
+                          atividade: consulta.contexto.atividade,
+                        }
+                      : undefined
+                  }
+                />
+              )}
             {!consulta && !status && (
               <section className="features">
                 <article>

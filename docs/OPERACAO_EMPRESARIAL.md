@@ -86,3 +86,7 @@ Produto e operação contraditórios pedem correção dos filtros. Perguntas ger
 O catálogo passou a 22 orientações revisadas. As cinco adicionais tratam de CNAE versus registro, conservação e comunicação de registros de armas de fogo, registros e estoques de munições, registros de insumos e plano de segurança empresarial. A resposta de CNAE não classifica automaticamente uma atividade nem declara dispensa concreta.
 
 A inferência de família das orientações exatas inclui armas de fogo e munições. DUIMP é reconhecida como operação de importação ao recuperar a pergunta revisada, inclusive com filtros em identificação automática. A referência das Normas da Portaria 213 foi corrigida sem trocar os identificadores dos fundamentos anteriores. Perguntas com corpo principal explícito não recebem artigos das Normas aprovadas.
+
+## Busca de perguntas e sugestões relacionadas
+
+O catálogo aceita palavras em qualquer ordem, sem acentos, e equivalências limitadas (renovar/revalidar, CR/registro, comprar/adquirir, vender/comercializar). Todos os termos relevantes precisam corresponder na busca do catálogo. Após uma pesquisa documental sem orientação revisada e sem referência exata, são exibidas até três perguntas publicadas com termos relacionados e compatíveis com os filtros. A semelhança textual não confirma aplicação ao caso; a seleção preenche uma nova consulta e os fundamentos são conferidos novamente ao consultar. Sugestões não entram no histórico nem na exportação como respostas.

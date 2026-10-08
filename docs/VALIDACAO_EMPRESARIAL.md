@@ -58,3 +58,7 @@ A interface publicada foi conferida em navegador: consulta com orientação/cita
 - Testes de SQL de curadoria e rastreabilidade aprovados: todos os fundamentos, retirada de orientação com fonte pendente, referências das Normas versus corpo principal e texto com prazo de conservação completo. Scripts: `tests/curadoria-empresarial.sql` e `tests/rastreabilidade-empresarial.sql`.
 - Regressões: 12 referências exatas e oito variações empresariais aprovadas.
 - Advisor mantém somente os dois avisos anteriores de extensões no esquema público. Não foram ampliadas permissões.
+
+### Busca e sugestões de perguntas revisadas
+
+18 testes unitários aprovados, incluindo ordem dos termos, acentos, equivalência renovação/CR, filtros incompatíveis e palavras vazias. Os 44 cenários REST das orientações existentes continuam aprovados. Build de produção aprovado; sem alteração de SQL, permissões ou vigência nesta rodada.
