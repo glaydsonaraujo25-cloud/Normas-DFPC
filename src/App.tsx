@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
   Building2,
   ShieldCheck,
@@ -26,6 +26,9 @@ import {
   exportarConsulta,
   hoje,
   urlSegura,
+  validarConsulta,
+  limitarHistorico,
+  filtrarHistorico,
 } from "./lib/consulta";
 import type {
   Consulta,
@@ -34,7 +37,10 @@ import type {
 } from "./lib/consulta";
 import type { Norma } from "./types";
 import { FonteNormativa, LinhaNormativa } from "./components/FonteNormativa";
-import { Revisao } from "./components/Revisao";
+import { PerguntasRevisadas } from "./components/PerguntasRevisadas";
+const Revisao = lazy(() =>
+  import("./components/Revisao").then((m) => ({ default: m.Revisao })),
+);
 
 type Tab = "consulta" | "base" | "roteiros" | "historico" | "revisao";
 type StatusResultado = {
@@ -65,6 +71,9 @@ export default function App() {
   const [erro, setErro] = useState("");
   const [pendencias, setPendencias] = useState<string[]>([]);
   const [historico, setHistorico] = useState<RegistroConsulta[]>(lerHistorico);
+  const [buscaHistorico, setBuscaHistorico] = useState("");
+  const [soFavoritos, setSoFavoritos] = useState(false);
+  const [excluidos, setExcluidos] = useState<RegistroConsulta[]>([]);
   const [normas, setNormas] = useState<Norma[]>(normasLocais);
   const [busca, setBusca] = useState("");
   const [avisoBase, setAvisoBase] = useState("");
@@ -135,8 +144,9 @@ export default function App() {
     setCarregando(false);
   }
   function guardar(itens: RegistroConsulta[]) {
-    setHistorico(itens);
-    if (!salvarHistorico(itens))
+    const limitados = limitarHistorico(itens);
+    setHistorico(limitados);
+    if (!salvarHistorico(limitados))
       setMensagem(
         "Seu navegador não permitiu salvar o histórico. Você ainda pode exportar a consulta.",
       );
@@ -197,11 +207,20 @@ export default function App() {
       });
       if (rid !== requestId.current) return;
       if (error) throw error;
+      if (!validarConsulta(data)) throw new Error("Resposta inválida");
       const resposta = data as Consulta;
-      if (!resposta || !Array.isArray(resposta.fontes))
-        throw new Error("Resposta inválida");
       resposta.fontes = resposta.fontes.filter((f) =>
         fonteAtual(f, contexto.data),
+      );
+      const ids = new Set(resposta.fontes.map((f) => f.dispositivo_id));
+      resposta.orientacoes = resposta.orientacoes.filter(
+        (o) =>
+          o.secoes.length > 0 &&
+          o.secoes.every(
+            (s) =>
+              s.dispositivo_ids.length > 0 &&
+              s.dispositivo_ids.every((id) => ids.has(id)),
+          ),
       );
       const registro: RegistroConsulta = {
         id: crypto.randomUUID(),
@@ -213,7 +232,7 @@ export default function App() {
       };
       setConsulta(registro);
       // Os detalhes ficam no dispositivo do usuário, sem serem enviados ao banco.
-      guardar([registro, ...historico].slice(0, 30));
+      guardar([registro, ...historico]);
     } catch {
       if (rid === requestId.current)
         setErro("Não foi possível concluir a consulta. Tente novamente.");
@@ -667,6 +686,24 @@ export default function App() {
               )}
             </div>
             {!consulta && !status && (
+              <PerguntasRevisadas
+                selecionar={(g) => {
+                  invalidar();
+                  setPergunta(g.pergunta_modelo);
+                  setContexto({
+                    ...contextoInicial(),
+                    produto: g.produto,
+                    atividade: g.atividade,
+                  });
+                  inputRef.current?.focus();
+                  inputRef.current?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center",
+                  });
+                }}
+              />
+            )}
+            {!consulta && !status && (
               <section className="features">
                 <article>
                   <Building2 />
@@ -834,6 +871,7 @@ export default function App() {
               {!!historico.length && (
                 <button
                   onClick={() => {
+                    setExcluidos(historico);
                     guardar([]);
                     setConsulta(null);
                     setMensagem("Histórico removido deste navegador.");
@@ -843,6 +881,45 @@ export default function App() {
                 </button>
               )}
             </div>
+            <div className="toolbar history-filters">
+              <label>
+                Buscar no histórico
+                <input
+                  type="search"
+                  value={buscaHistorico}
+                  onChange={(e) => setBuscaHistorico(e.target.value)}
+                />
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={soFavoritos}
+                  onChange={(e) => setSoFavoritos(e.target.checked)}
+                />{" "}
+                Somente favoritos
+              </label>
+            </div>
+            {!!excluidos.length && (
+              <div className="global-notice" role="status">
+                {excluidos.length} consulta(s) excluída(s).
+                <button
+                  onClick={() => {
+                    const ids = new Set(historico.map((r) => r.id));
+                    guardar(
+                      [
+                        ...historico,
+                        ...excluidos.filter((r) => !ids.has(r.id)),
+                      ].sort((a, b) => b.criadoEm.localeCompare(a.criadoEm)),
+                    );
+                    setExcluidos([]);
+                    setMensagem("Exclusão desfeita.");
+                  }}
+                >
+                  Desfazer exclusão
+                </button>
+                <small>Disponível até sair ou recarregar a página.</small>
+              </div>
+            )}
             {!historico.length ? (
               <div className="answer empty">
                 <History />
@@ -850,9 +927,10 @@ export default function App() {
               </div>
             ) : (
               <div className="history-list">
-                {[...historico]
-                  .sort((a, b) => Number(b.favorito) - Number(a.favorito))
-                  .map((r) => (
+                {!filtrarHistorico(historico, buscaHistorico, soFavoritos)
+                  .length && <p>Nenhuma consulta corresponde aos filtros.</p>}
+                {filtrarHistorico(historico, buscaHistorico, soFavoritos).map(
+                  (r) => (
                     <article className="source-card" key={r.id}>
                       <h3>{r.pergunta}</h3>
                       <p className="muted">
@@ -887,20 +965,29 @@ export default function App() {
                           Exportar
                         </button>
                         <button
-                          onClick={() =>
-                            guardar(historico.filter((h) => h.id !== r.id))
-                          }
+                          onClick={() => {
+                            setExcluidos([r]);
+                            guardar(historico.filter((h) => h.id !== r.id));
+                            if (consulta?.id === r.id) setConsulta(null);
+                          }}
                         >
                           Excluir
                         </button>
                       </div>
                     </article>
-                  ))}
+                  ),
+                )}
               </div>
             )}
           </section>
         )}
-        {tab === "revisao" && <Revisao />}
+        {tab === "revisao" && (
+          <Suspense
+            fallback={<p role="status">Carregando painel de revisão…</p>}
+          >
+            <Revisao />
+          </Suspense>
+        )}
       </main>
       <footer>
         Normas DFPC · Consulta fundamentada em conteúdo cadastrado · Sem

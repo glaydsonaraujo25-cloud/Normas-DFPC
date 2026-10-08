@@ -140,14 +140,14 @@ export function faltantes(pergunta: string, c: ContextoEmpresa): string[] {
 export function fonteAtual(f: Fonte, data: string): boolean {
   return Boolean(
     f.dispositivo_id &&
-      f.literal_conferido &&
-      f.texto_literal &&
-      ["vigente", "alterado"].includes(f.status_dispositivo || "") &&
-      ["vigente", "vigente_com_alteracoes", "parcialmente_vigente"].includes(
-        f.status,
-      ) &&
-      (!f.vigencia_inicio || f.vigencia_inicio <= data) &&
-      (!f.vigencia_fim || f.vigencia_fim >= data),
+    f.literal_conferido &&
+    f.texto_literal &&
+    ["vigente", "alterado"].includes(f.status_dispositivo || "") &&
+    ["vigente", "vigente_com_alteracoes", "parcialmente_vigente"].includes(
+      f.status,
+    ) &&
+    (!f.vigencia_inicio || f.vigencia_inicio <= data) &&
+    (!f.vigencia_fim || f.vigencia_fim >= data),
   );
 }
 export function secoesExtraidas(fontes: Fonte[]) {
@@ -191,30 +191,142 @@ export type RegistroConsulta = {
   favorito: boolean;
 };
 const CHAVE = "normas-dfpc-consultas-v1";
+const objeto = (v: unknown): v is Record<string, unknown> =>
+  typeof v === "object" && v !== null && !Array.isArray(v);
+const textoOuNulo = (v: unknown) => v === null || typeof v === "string";
+function validarFonte(v: unknown): v is Fonte {
+  if (!objeto(v)) return false;
+  return (
+    [
+      "norma_id",
+      "titulo",
+      "dispositivo",
+      "conteudo",
+      "status",
+      "tipo_conteudo",
+    ].every((k) => typeof v[k] === "string") &&
+    [
+      "dispositivo_id",
+      "texto_literal",
+      "status_dispositivo",
+      "ultima_verificacao",
+      "vigencia_inicio",
+      "vigencia_fim",
+      "fonte_oficial",
+      "nome_arquivo",
+      "sha256",
+    ].every((k) => textoOuNulo(v[k])) &&
+    typeof v.literal_conferido === "boolean" &&
+    (v.pagina === null || typeof v.pagina === "number") &&
+    typeof v.relevancia === "number" &&
+    ["number", "string"].includes(typeof v.trecho_id) &&
+    Array.isArray(v.relacoes) &&
+    v.relacoes.every(
+      (r) =>
+        objeto(r) &&
+        typeof r.tipo === "string" &&
+        typeof r.norma_relacionada === "string" &&
+        (r.dispositivo == null || typeof r.dispositivo === "string") &&
+        (r.observacoes == null || typeof r.observacoes === "string"),
+    )
+  );
+}
+export function validarConsulta(v: unknown): v is Consulta {
+  if (!objeto(v)) return false;
+  return (
+    typeof v.data_referencia === "string" &&
+    typeof v.versao === "string" &&
+    typeof v.fontes_excluidas === "number" &&
+    Array.isArray(v.fontes) &&
+    v.fontes.every(validarFonte) &&
+    Array.isArray(v.orientacoes) &&
+    v.orientacoes.every(
+      (o) =>
+        objeto(o) &&
+        ["id", "titulo", "produto", "atividade", "pergunta_modelo"].every(
+          (k) => typeof o[k] === "string",
+        ) &&
+        textoOuNulo(o.revisado_em) &&
+        ["rascunho", "publicada"].includes(String(o.estado)) &&
+        Array.isArray(o.secoes) &&
+        o.secoes.every(
+          (sec) =>
+            objeto(sec) &&
+            typeof sec.titulo === "string" &&
+            typeof sec.texto === "string" &&
+            Array.isArray(sec.dispositivo_ids) &&
+            sec.dispositivo_ids.every((id) => typeof id === "string"),
+        ),
+    )
+  );
+}
+export function limitarHistorico(
+  itens: RegistroConsulta[],
+): RegistroConsulta[] {
+  // Protege favoritos antigos quando consultas novas ultrapassam o limite.
+  if (!itens.length) return [];
+  const recentes = itens.slice(1);
+  const favoritos = recentes.filter((r) => r.favorito).slice(0, 29);
+  const comuns = recentes
+    .filter((r) => !r.favorito)
+    .slice(0, 29 - favoritos.length);
+  const ids = new Set([itens[0], ...favoritos, ...comuns].map((r) => r.id));
+  return itens.filter((r) => ids.has(r.id)).slice(0, 30);
+}
+export function filtrarHistorico(
+  itens: RegistroConsulta[],
+  busca: string,
+  favoritos: boolean,
+) {
+  const q = normalizar(busca.trim());
+  return itens
+    .filter(
+      (r) =>
+        (!favoritos || r.favorito) &&
+        normalizar(
+          [
+            r.pergunta,
+            r.contexto.produto,
+            r.contexto.atividade,
+            ...r.consulta.fontes.map((f) => f.titulo),
+          ].join(" "),
+        ).includes(q),
+    )
+    .sort(
+      (a, b) =>
+        Number(b.favorito) - Number(a.favorito) ||
+        b.criadoEm.localeCompare(a.criadoEm),
+    );
+}
 export function lerHistorico(): RegistroConsulta[] {
   try {
     const valor: unknown = JSON.parse(localStorage.getItem(CHAVE) || "[]");
     if (!Array.isArray(valor)) return [];
-    return valor
-      .filter(
+    return limitarHistorico(
+      valor.filter(
         (x): x is RegistroConsulta =>
-          !!x &&
+          objeto(x) &&
           typeof x.id === "string" &&
           typeof x.pergunta === "string" &&
           typeof x.criadoEm === "string" &&
-          !!x.contexto &&
-          !!x.consulta &&
-          Array.isArray(x.consulta.fontes) &&
-          Array.isArray(x.consulta.orientacoes),
-      )
-      .slice(0, 30);
+          !Number.isNaN(Date.parse(x.criadoEm)) &&
+          typeof x.favorito === "boolean" &&
+          objeto(x.contexto) &&
+          ["produto", "atividade", "registro", "detalhes", "data"].every(
+            (k) =>
+              typeof (x.contexto as Record<string, unknown>)[k] === "string",
+          ) &&
+          ["empresa", "todos"].includes(String(x.contexto.publico)) &&
+          validarConsulta(x.consulta),
+      ),
+    );
   } catch {
     return [];
   }
 }
 export function salvarHistorico(itens: RegistroConsulta[]) {
   try {
-    localStorage.setItem(CHAVE, JSON.stringify(itens.slice(0, 30)));
+    localStorage.setItem(CHAVE, JSON.stringify(limitarHistorico(itens)));
     return true;
   } catch {
     return false;

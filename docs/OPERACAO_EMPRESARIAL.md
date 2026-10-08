@@ -44,3 +44,9 @@ O frontend não possui acesso para inserir nessa tabela. O revisor entra na aba 
 ## Cobertura
 
 A busca empresarial pesquisa os dispositivos cadastrados diretamente. O indicador de vínculo entre trechos e dispositivos mede apenas referências que são exatamente iguais, não o percentual integral do texto de uma norma. Vínculos aproximados não são criados automaticamente.
+
+## Perguntas revisadas e histórico
+
+A página Consulta lista até 100 perguntas publicadas pela curadoria. Selecionar uma pergunta preenche seu produto e atividade e remove filtros anteriores, sem reaproveitar detalhes de outro caso. A consulta valida novamente os fundamentos na data atual; a presença no catálogo não garante que uma orientação continuará disponível.
+
+O histórico permite buscar por pergunta e título das normas, ignorando acentos, e filtrar favoritos. Ao ultrapassar 30 registros, a consulta mais recente é preservada e os favoritos têm prioridade. Exclusões individuais e limpeza podem ser desfeitas na mesma sessão, até recarregar/sair da página. O conteúdo interno dos registros é validado antes da abertura; registros corrompidos são ignorados.

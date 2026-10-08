@@ -8,8 +8,12 @@ import {
   lerHistorico,
   salvarHistorico,
   secoesExtraidas,
+  validarConsulta,
+  limitarHistorico,
+  filtrarHistorico,
 } from "../src/lib/consulta.ts";
 import type { Fonte } from "../src/lib/consulta.ts";
+import type { RegistroConsulta } from "../src/lib/consulta.ts";
 const fonte = {
   dispositivo_id: "id",
   literal_conferido: true,
@@ -118,5 +122,74 @@ test("reconhece a família de menor potencial ofensivo", () => {
       contextoInicial(),
     ).length,
     0,
+  );
+});
+
+const registro = (id: string, favorito = false): RegistroConsulta => ({
+  id,
+  favorito,
+  pergunta: "Importação de químicos",
+  criadoEm: "2026-10-08T12:00:00Z",
+  contexto: contextoInicial(),
+  consulta: {
+    fontes: [],
+    orientacoes: [],
+    data_referencia: "2026-10-08",
+    versao: "v2",
+    fontes_excluidas: 0,
+  },
+});
+test("preserva favorito antigo e a consulta recém-feita no limite do histórico", () => {
+  const itens = Array.from({ length: 30 }, (_, i) =>
+    registro(String(i), i === 29),
+  );
+  const salvos = limitarHistorico([registro("nova"), ...itens]);
+  assert.equal(salvos.length, 30);
+  assert.equal(salvos[0].id, "nova");
+  assert.ok(salvos.some((r) => r.id === "29"));
+  const todosFavoritos = limitarHistorico([
+    registro("nova"),
+    ...itens.map((r) => ({ ...r, favorito: true })),
+  ]);
+  assert.equal(todosFavoritos[0].id, "nova");
+  assert.equal(todosFavoritos.length, 30);
+});
+test("busca no histórico ignora acentos e respeita favoritos", () => {
+  assert.equal(
+    filtrarHistorico([registro("1"), registro("2", true)], "IMPORTACAO", true)
+      .length,
+    1,
+  );
+  assert.equal(
+    filtrarHistorico([registro("1")], "explosivos", false).length,
+    0,
+  );
+});
+test("rejeita resposta ou histórico com conteúdo interno corrompido", () => {
+  assert.equal(validarConsulta(registro("1").consulta), true);
+  assert.equal(
+    validarConsulta({ ...registro("1").consulta, fontes: [null] }),
+    false,
+  );
+  assert.equal(
+    validarConsulta({
+      ...registro("1").consulta,
+      orientacoes: [{ secoes: "inválido" }],
+    }),
+    false,
+  );
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    value: {
+      getItem: () =>
+        JSON.stringify([
+          registro("valido"),
+          { ...registro("corrompido"), contexto: { publico: "empresa" } },
+        ]),
+    },
+  });
+  assert.deepEqual(
+    lerHistorico().map((r) => r.id),
+    ["valido"],
   );
 });
