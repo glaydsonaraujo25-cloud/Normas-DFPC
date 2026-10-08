@@ -350,3 +350,16 @@ test("orientações gerais não exigem detalhes de uma operação individual", (
     ).length > 0,
   );
 });
+
+test("CNAE geral não exige produto, mas dispensa de um CNAE específico exige contexto", () => {
+  assert.deepEqual(
+    faltantes(
+      "O CNAE por si só dispensa o registro para atividade com PCE?",
+      contextoInicial(),
+    ),
+    [],
+  );
+  assert.ok(
+    faltantes("Meu CNAE 1234 dispensa registro?", contextoInicial()).length > 0,
+  );
+});

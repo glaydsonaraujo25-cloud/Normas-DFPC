@@ -80,3 +80,9 @@ São 17 perguntas revisadas. Incluem concessão e revalidação de registro, fab
 As orientações recuperam todos os fundamentos citados, independentemente do limite de ranking documental. Se qualquer fundamento perde a conferência ou aplicabilidade, a orientação não é retornada. Consultas com norma/artigo explícitos continuam prioritárias. Casos com concentração, dispensa, prazo ou condição específica não são automaticamente substituídos por uma orientação geral.
 
 Produto e operação contraditórios pedem correção dos filtros. Perguntas gerais aprovadas não exigem detalhes de uma operação individual. Links complementares, origem/data de reconferência textual e pendências aparecem na resposta e na exportação. A aplicação não realiza monitoramento automático de legislação.
+
+## Rastreabilidade e risco
+
+O catálogo passou a 22 orientações revisadas. As cinco adicionais tratam de CNAE versus registro, conservação e comunicação de registros de armas de fogo, registros e estoques de munições, registros de insumos e plano de segurança empresarial. A resposta de CNAE não classifica automaticamente uma atividade nem declara dispensa concreta.
+
+A inferência de família das orientações exatas inclui armas de fogo e munições. DUIMP é reconhecida como operação de importação ao recuperar a pergunta revisada, inclusive com filtros em identificação automática. A referência das Normas da Portaria 213 foi corrigida sem trocar os identificadores dos fundamentos anteriores. Perguntas com corpo principal explícito não recebem artigos das Normas aprovadas.

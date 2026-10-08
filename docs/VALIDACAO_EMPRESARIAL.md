@@ -50,3 +50,11 @@ A interface publicada foi conferida em navegador: consulta com orientação/cita
 - 41 textos com reconferência documentada; um adicional fica pendente de vigência. A data global de vigência não foi avançada.
 - Advisor de segurança: apenas os dois avisos anteriores de extensões `vector` e `pg_trgm` no esquema público; nenhuma nova exposição de tabela, RLS ou função. A realocação dessas extensões exige uma migração própria com avaliação das dependências.
 - A leitura das fontes não equivale a auditoria integral das 59 normas; limitações em `FONTES_OFICIAIS.md`.
+
+## Sexta atualização — registros e classificação de risco
+
+- 16 testes unitários aprovados, incluindo pergunta geral de CNAE versus caso específico que exige contexto.
+- 44 cenários REST públicos: as 22 perguntas com filtros próprios e com identificação automática, contrato do cliente e validade das fontes. Isso identificou e corrigiu a recuperação da pergunta sobre DUIMP sem filtro de atividade.
+- Testes de SQL de curadoria e rastreabilidade aprovados: todos os fundamentos, retirada de orientação com fonte pendente, referências das Normas versus corpo principal e texto com prazo de conservação completo. Scripts: `tests/curadoria-empresarial.sql` e `tests/rastreabilidade-empresarial.sql`.
+- Regressões: 12 referências exatas e oito variações empresariais aprovadas.
+- Advisor mantém somente os dois avisos anteriores de extensões no esquema público. Não foram ampliadas permissões.

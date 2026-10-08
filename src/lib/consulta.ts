@@ -122,6 +122,12 @@ const normalizar = (t: string) =>
 export function faltantes(pergunta: string, c: ContextoEmpresa): string[] {
   const q = normalizar(pergunta);
   if (
+    /^o cnae por si so dispensa o registro para atividade com pce[?!.]*$/.test(
+      q.trim(),
+    )
+  )
+    return [];
+  if (
     /(como solicitar|como revalidar)/.test(q) &&
     /registro/.test(q) &&
     /empresa nao fabricante|fabricacao de pce/.test(q)

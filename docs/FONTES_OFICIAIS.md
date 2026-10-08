@@ -33,3 +33,16 @@ Links exatos adicionais: Decretos 11.615/2023, 12.345/2024 e 9.847/2019, Lei 10.
 A orientação de importação também indica a fonte complementar oficial https://www.gov.br/siscomex/pt-br/noticias/noticias-siscomex-importacao/Comunicados/importacao-no-2026-082, recuperada em 08/10/2026. A dispensa de LPCO ali descrita exige verificar as condições do comunicado; a aplicação não trata toda importação de PCE como obrigada ou dispensada. Fontes complementares são distinguidas dos dispositivos transcritos.
 
 O índice DFPC continuou indisponível (HTTP 502). Esta revisão não comprova atualização integral das 59 normas, todos os anexos ou todas as revogações. O painel registra as pendências e separa conferência textual de vigência.
+
+## Rastreabilidade e risco — terceira rodada de 08/10/2026
+
+Mais 18 dispositivos reconferidos nas Portarias 213/2021, 214/2021 e 800/2020, totalizando 59 dispositivos com registro desta reconferência (não 59 normas integralmente auditadas). Os textos de regras documentais e de conservação de dados foram confrontados com as páginas dos PDFs, incluindo as imagens quando a extração apresentou caracteres corrompidos. Evidências: `curadoria-rastreabilidade-2026-10-08.json`.
+
+Foram corrigidos resumos indevidamente marcados como literais nos arts. 10 e 14 das Normas da Portaria 213 e arts. 4º e 6º das Normas da Portaria 214. O art. 2º da Portaria 214 passou a incluir seus parágrafos. As referências dos artigos das Normas da Portaria 213 agora explicitam o escopo e não se confundem com o corpo principal. Textos anteriores ficam preservados em metadados.
+
+Dois vínculos oficiais exatos adicionais:
+
+- Portaria 147: https://www.defesacivil.pr.gov.br/sites/defesa-civil/arquivos_restritos/files/documento/2025-07/portarian147.pdf — cópia em órgão público recuperada, identificação do ato e os artigos iniciais comparados. Não se inferiu consolidação integral pelo link.
+- Portaria 800: https://www.sgex.eb.mil.br/sg8/006_outras_publicacoes/07_publicacoes_diversas/01_comando_do_exercito/port_n_800_cmdo_eb_14ago2020.html — link exato localizado na indexação da SGEx, compatível com o cabeçalho do PDF fornecido; destino retornou 502. Os arts. 1º a 4º foram reconferidos no PDF, não no destino indisponível.
+
+Restam 48 normas sem link oficial cadastrado. O índice DFPC voltou a retornar 502. O Anexo Único completo da Portaria 800 e a cadeia integral de alterações das 59 normas permanecem fora do escopo da conferência desta rodada. Não se alteraram datas globais de vigência.

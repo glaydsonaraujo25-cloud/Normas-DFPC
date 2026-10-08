@@ -1,0 +1,154 @@
+[
+  {
+    "titulo": "CNAE e classificação de risco da atividade",
+    "pergunta_modelo": "O CNAE por si só dispensa o registro para atividade com PCE?",
+    "produto": "todos",
+    "atividade": "registro",
+    "secoes": [
+      {
+        "titulo": "CNAE não resolve sozinho o enquadramento",
+        "texto": "A Portaria 800 aprova uma tabela de risco de atividades sujeitas à liberação pelo SisFPC e determina sua revisão periódica. Ela estabelece que as atividades econômicas relacionadas a PCE não sejam classificadas no nível de risco I. Identifique o produto, a atividade efetiva e a linha aplicável da tabela; esta resposta não classifica um CNAE específico.",
+        "referencias": [
+          {
+            "norma": "Portaria nº 800, de 14 de agosto de 2020",
+            "referencia": "Art. 1º"
+          },
+          {
+            "norma": "Portaria nº 800, de 14 de agosto de 2020",
+            "referencia": "Art. 2º"
+          },
+          {
+            "norma": "Portaria nº 800, de 14 de agosto de 2020",
+            "referencia": "Art. 3º"
+          }
+        ]
+      },
+      {
+        "titulo": "Registro da atividade",
+        "texto": "O art. 7º, caput, do Anexo I estabelece registro para o exercício de atividades com PCE, próprio ou terceirizado. O código CNAE não comprova por si só uma dispensa; qualquer exceção depende da regra específica e de suas condições aplicáveis.",
+        "referencias": [
+          {
+            "norma": "Decreto nº 10.030, de 30 de setembro de 2019",
+            "referencia": "Anexo I, art. 7º, caput"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "titulo": "Registros empresariais de armas de fogo",
+    "pergunta_modelo": "Quais dados e prazos de guarda se aplicam aos registros empresariais de armas de fogo?",
+    "produto": "armas",
+    "atividade": "todos",
+    "secoes": [
+      {
+        "titulo": "Banco de dados e conservação",
+        "texto": "O art. 16 das Normas da Portaria 213 exige banco próprio de fabricantes, pessoas jurídicas importadoras e comerciantes, com identificação do adquirente, autorização de aquisição, nota fiscal e, quando cabíveis, licença de importação e guia de tráfego. Os registros de armas devem ser mantidos por pelo menos vinte anos e suas informações disponibilizadas ao Exército, por intermédio da DFPC, e à Polícia Federal. Veja a transcrição para conferir todos os campos e as condições.",
+        "referencias": [
+          {
+            "norma": "Portaria nº 213 COLOG/C Ex, de 15 de setembro de 2021",
+            "referencia": "Normas, art. 16, caput e §§ 1º a 3º"
+          }
+        ]
+      },
+      {
+        "titulo": "Cadastro e comunicação",
+        "texto": "O art. 17 trata do envio mensal pelos fabricantes e pessoas jurídicas importadoras para o cadastro no SICOFA; isso não estende automaticamente ao comerciante o procedimento de envio previsto para esses dois públicos. O art. 6º também determina que fabricante ou importador informe à DFPC o padrão serial utilizado.",
+        "referencias": [
+          {
+            "norma": "Portaria nº 213 COLOG/C Ex, de 15 de setembro de 2021",
+            "referencia": "Normas, art. 17"
+          },
+          {
+            "norma": "Portaria nº 213 COLOG/C Ex, de 15 de setembro de 2021",
+            "referencia": "Normas, art. 6º"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "titulo": "Registros e estoques de munições",
+    "pergunta_modelo": "Quais registros e prazos de guarda se aplicam ao comércio empresarial de munições?",
+    "produto": "municoes",
+    "atividade": "comercio",
+    "secoes": [
+      {
+        "titulo": "Entradas, saídas e prazo",
+        "texto": "O art. 9º das Normas da Portaria 214 exige banco próprio com os registros de entradas e saídas, incluindo dados do adquirente, produto, lote, documento fiscal, quantidade e os demais campos e condições ali previstos. Esses registros devem permanecer por pelo menos vinte anos à disposição da Administração Militar e dos órgãos de investigação policial. O dispositivo também prevê acesso para leitura e rastreamento; confira os destinatários e condições na transcrição.",
+        "referencias": [
+          {
+            "norma": "Portaria nº 214-COLOG/C Ex, de 15 de setembro de 2021",
+            "referencia": "Normas, art. 9º, caput e §§ 1º a 4º"
+          }
+        ]
+      },
+      {
+        "titulo": "Atualização de estoque",
+        "texto": "O art. 11 determina que fabricantes, pessoas jurídicas importadoras e comerciantes cadastrem e atualizem os estoques de munições e seus insumos no SICOVEM. A regra do banco próprio e a atualização do estoque no sistema são obrigações distintas.",
+        "referencias": [
+          {
+            "norma": "Portaria nº 214-COLOG/C Ex, de 15 de setembro de 2021",
+            "referencia": "Normas, art. 11"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "titulo": "Registros comerciais de insumos de munição",
+    "pergunta_modelo": "Quais registros empresariais devem ser mantidos para insumos de munição?",
+    "produto": "municoes",
+    "atividade": "todos",
+    "secoes": [
+      {
+        "titulo": "Dados, guarda e acesso",
+        "texto": "O art. 10 das Normas da Portaria 214 exige banco próprio para entradas e saídas de insumos, define os dados e os insumos abrangidos e prevê guarda mínima de vinte anos. Também estabelece disponibilização para leitura e rastreamento. Esta orientação trata de registros administrativos; não fornece procedimentos de recarga.",
+        "referencias": [
+          {
+            "norma": "Portaria nº 214-COLOG/C Ex, de 15 de setembro de 2021",
+            "referencia": "Normas, art. 10, caput e §§ 1º a 5º"
+          }
+        ]
+      },
+      {
+        "titulo": "Estoque",
+        "texto": "O art. 11 inclui os insumos na obrigação de cadastrar e atualizar estoques no SICOVEM. Confira o enquadramento do insumo antes de aplicar a obrigação ao produto específico.",
+        "referencias": [
+          {
+            "norma": "Portaria nº 214-COLOG/C Ex, de 15 de setembro de 2021",
+            "referencia": "Normas, art. 11"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "titulo": "Plano de segurança de PCE da empresa",
+    "pergunta_modelo": "O que deve constar no plano de segurança de PCE da empresa?",
+    "produto": "todos",
+    "atividade": "todos",
+    "secoes": [
+      {
+        "titulo": "Conteúdo e responsabilidade",
+        "texto": "O art. 99 do Anexo I do Decreto 10.030 atribui à pessoa jurídica detentora de registro o planejamento e a implementação das medidas. O plano abrange análise de riscos, controle de acesso, proteção, prevenção durante deslocamentos e paradas, contingência e capacitação com registro. A empresa designa responsável; a execução pode ser terceirizada. O plano deve permanecer na sede, atualizado, legível e disponível à fiscalização quando solicitado.",
+        "referencias": [
+          {
+            "norma": "Decreto nº 10.030, de 30 de setembro de 2019",
+            "referencia": "Anexo I, art. 99, caput e §§ 1º a 3º"
+          }
+        ]
+      },
+      {
+        "titulo": "Duas dimensões de segurança",
+        "texto": "O art. 98 distingue segurança de área, relacionada a acidentes e integridade de pessoas e bens, de segurança de PCE, relacionada a desvios, extravios, roubos, furtos e aquisição ilícita de conhecimento. A orientação descreve o conteúdo normativo; não certifica a adequação de um plano concreto.",
+        "referencias": [
+          {
+            "norma": "Decreto nº 10.030, de 30 de setembro de 2019",
+            "referencia": "Anexo I, art. 98, caput e §§ 1º e 2º"
+          }
+        ]
+      }
+    ]
+  }
+]
