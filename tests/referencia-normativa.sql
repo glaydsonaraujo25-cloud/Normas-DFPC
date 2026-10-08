@@ -4,12 +4,12 @@ with casos(q,esperado,esclarecer) as (values
  ('Art. 2º do Anexo I do Decreto 10.030',1,false),
  ('Art. 2º do Anexo 1 do Decreto 10.030',1,false),
  ('Art. 2º do corpo principal do Decreto 10.030',0,false),
- ('Art. 2º da Portaria 56 de 2017',2,false),
- ('Art. 2º § 1º da Portaria 56 de 2017',1,false),
+ ('Art. 2º da Portaria 56 de 2017',1,false),
+ ('Art. 2º § 1º da Portaria 56 de 2017',0,false),
  ('Art. 1º inciso V da Portaria 291 de 2026',1,false),
  ('Art. 3º da Portaria 118 de 1900 — corpo principal',0,false),
  ('Art. 9999 do Anexo I do Decreto 10030',0,false),
- ('Art. 81 do Anexo I do Decreto 10030',0,false),
+ ('Art. 81 do Anexo I do Decreto 10030',1,false),
  ('Art. 64 das normas reguladoras da Portaria 2566 de 2025',1,false),
  ('Arts. 98 e 99 do Anexo I do Decreto 10030',0,false)
 ), respostas as (select *,consultar_empresa_pce(q,'todos','todos','empresa',current_date,10) r from casos)

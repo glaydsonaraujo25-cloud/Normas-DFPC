@@ -1277,3 +1277,16 @@ footer {
     display: none !important;
   }
 }
+
+.complementary-links {
+  padding-left: 1.25rem;
+}
+.complementary-links small {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--muted);
+}
+.normative-text {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}

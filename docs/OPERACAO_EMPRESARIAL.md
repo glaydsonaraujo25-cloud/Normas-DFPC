@@ -72,3 +72,11 @@ Lacunas de transcrição, seção ou identificação não comprovam revogação 
 Cada resultado distingue orientação prática revisada, referência normativa localizada, pesquisa documental e fundamento insuficiente. O painel informa quantas fontes têm link oficial, datas de verificação ausentes e fundamentos citados por orientações que não constam no resultado. Esses indicadores descrevem o cadastro e não medem confiança nem garantem atualização integral da legislação. A exportação Markdown preserva essas informações e a data de revisão das orientações.
 
 Os blocos de requisitos, condições e prazos são índices por palavras presentes nos textos. Não constituem conclusões adicionais: apontam para o texto completo nos fundamentos, evitando repetir o mesmo dispositivo em vários blocos.
+
+## Curadoria empresarial v5
+
+São 17 perguntas revisadas. Incluem concessão e revalidação de registro, fabricação, limites do CR, apostilamento, transporte, armazenagem, estoque/vendas, importação, DUIMP, exportação e controles/documentação de explosivos. Os textos editoriais estão em `orientacoes-2026-10-08.json`; a migração resolve os dispositivos por norma e referência.
+
+As orientações recuperam todos os fundamentos citados, independentemente do limite de ranking documental. Se qualquer fundamento perde a conferência ou aplicabilidade, a orientação não é retornada. Consultas com norma/artigo explícitos continuam prioritárias. Casos com concentração, dispensa, prazo ou condição específica não são automaticamente substituídos por uma orientação geral.
+
+Produto e operação contraditórios pedem correção dos filtros. Perguntas gerais aprovadas não exigem detalhes de uma operação individual. Links complementares, origem/data de reconferência textual e pendências aparecem na resposta e na exportação. A aplicação não realiza monitoramento automático de legislação.

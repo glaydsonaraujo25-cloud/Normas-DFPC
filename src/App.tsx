@@ -19,6 +19,7 @@ import {
   PRODUTOS,
   contextoInicial,
   faltantes,
+  conflitosContexto,
   fonteAtual,
   secoesExtraidas,
   coberturaConsulta,
@@ -188,7 +189,12 @@ export default function App() {
         pergunta,
       );
     const faltam =
-      vigencia || referenciaExplicita ? [] : faltantes(pergunta, contexto);
+      vigencia || referenciaExplicita
+        ? []
+        : [
+            ...conflitosContexto(pergunta, contexto),
+            ...faltantes(pergunta, contexto),
+          ];
     if (faltam.length) {
       setPendencias(faltam);
       inputRef.current?.focus();
@@ -614,9 +620,10 @@ export default function App() {
                   )}
                   {!!consulta.consulta.complementares && (
                     <p className="muted">
-                      Incluídos {consulta.consulta.complementares} dispositivos
-                      complementares do mesmo artigo para conferir condições e
-                      exceções.
+                      {consulta.consulta.complementares === 1
+                        ? "Incluído 1 dispositivo complementar"
+                        : `Incluídos ${consulta.consulta.complementares} dispositivos complementares`}{" "}
+                      do mesmo artigo para conferir condições e exceções.
                     </p>
                   )}
                   {consulta.consulta.aviso_referencia && (
@@ -664,6 +671,25 @@ export default function App() {
                                     ) : null;
                                   })}
                                 </p>
+                                {!!s.fontes_complementares?.length && (
+                                  <ul className="complementary-links">
+                                    {s.fontes_complementares.map((f) => (
+                                      <li key={f.url}>
+                                        <a
+                                          href={urlSegura(f.url)!}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                        >
+                                          {f.titulo}
+                                        </a>
+                                        <small>
+                                          Fonte complementar verificada em{" "}
+                                          {f.verificado_em}.
+                                        </small>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
                               </section>
                             ))}
                             <small>
@@ -1101,6 +1127,13 @@ function CoberturaResposta({ consulta }: { consulta: Consulta }) {
           {cobertura.semLink > 0 && " Há links oficiais pendentes de cadastro."}
           {cobertura.semData > 0 &&
             ` ${cobertura.semData} fonte(s) sem data de verificação informada.`}
+        </p>
+      )}
+      {!!consulta.fontes.length && (
+        <p>
+          Textos com reconferência documentada: {cobertura.textosReconferidos}{" "}
+          de {consulta.fontes.length}. A reconferência do texto é distinta da
+          análise de vigência.
         </p>
       )}
       {cobertura.fundamentosAusentes > 0 && (

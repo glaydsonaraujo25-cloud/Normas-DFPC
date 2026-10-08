@@ -16,6 +16,12 @@ type Auditoria = {
   dispositivos: number;
   conferidos: number;
 };
+type AuditoriaTextual = {
+  id: string;
+  dispositivos: number;
+  textos_reconferidos: number;
+  textos_pendentes: number;
+};
 type Dispositivo = {
   id: string;
   referencia: string;
@@ -25,6 +31,10 @@ type Dispositivo = {
 };
 export function Revisao() {
   const [auditoria, setAuditoria] = useState<Auditoria[]>([]);
+  const [auditoriaTextual, setAuditoriaTextual] = useState<
+    AuditoriaTextual[] | null
+  >(null);
+  const [erroTextual, setErroTextual] = useState("");
   const [sessao, setSessao] = useState<Session | null>(null);
   const [revisor, setRevisor] = useState(false);
   const [email, setEmail] = useState("");
@@ -57,6 +67,15 @@ export function Revisao() {
         if (!ativo) return;
         if (error) setErro("Não foi possível carregar o painel de revisão.");
         else setAuditoria(data || []);
+      });
+    supabase
+      .from("v_auditoria_textual")
+      .select("*")
+      .then(({ data, error }) => {
+        if (!ativo) return;
+        if (error)
+          setErroTextual("Não foi possível carregar a auditoria textual.");
+        else setAuditoriaTextual(data || []);
       });
     supabase.auth.getSession().then(({ data }) => {
       if (ativo) setSessao(data.session);
@@ -188,6 +207,18 @@ export function Revisao() {
       setErro("Informe um link HTTPS válido.");
       return;
     }
+    if (
+      ultimaVerificacao >
+      new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Sao_Paulo",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date())
+    ) {
+      setErro("A data da conferência não pode estar no futuro.");
+      return;
+    }
     if (!ultimaVerificacao) {
       setErro("Informe a data da conferência.");
       return;
@@ -228,7 +259,10 @@ export function Revisao() {
       !n.fonte_oficial ||
       !n.ultima_verificacao ||
       n.vinculados < n.trechos ||
-      n.conferidos < n.dispositivos,
+      n.conferidos < n.dispositivos ||
+      !!auditoriaTextual?.some(
+        (a) => a.id === n.id && a.textos_reconferidos < a.dispositivos,
+      ),
   );
   return (
     <section className="library">
@@ -256,6 +290,17 @@ export function Revisao() {
           <span>Trechos sem vínculo exato</span>
         </div>
       </div>
+      <p className="answer-block">
+        Reconferência textual documentada:{" "}
+        {auditoriaTextual === null
+          ? erroTextual
+            ? "Indisponível"
+            : "Carregando…"
+          : `${auditoriaTextual.reduce((total, a) => total + a.textos_reconferidos, 0)} de ${auditoriaTextual.reduce((total, a) => total + a.dispositivos, 0)} dispositivos cadastrados`}
+        . Esse indicador verifica o texto e sua origem; não comprova vigência
+        integral nem cobertura completa de cada norma.
+      </p>
+      {erroTextual && <p role="status">{erroTextual}</p>}
       {erro && (
         <p className="warning" role="alert">
           {erro}
@@ -281,6 +326,7 @@ export function Revisao() {
               <th>Situação</th>
               <th>Trechos vinculados</th>
               <th>Dispositivos conferidos</th>
+              <th>Reconferência textual</th>
               <th>Origem</th>
             </tr>
           </thead>
@@ -299,6 +345,11 @@ export function Revisao() {
                 </td>
                 <td>
                   {n.conferidos}/{n.dispositivos}
+                </td>
+                <td>
+                  {auditoriaTextual === null
+                    ? "Indisponível"
+                    : `${auditoriaTextual.find((a) => a.id === n.id)?.textos_reconferidos || 0}/${n.dispositivos}`}
                 </td>
                 <td>
                   {urlSegura(n.fonte_oficial) ? (

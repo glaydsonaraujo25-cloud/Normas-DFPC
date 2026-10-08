@@ -21,3 +21,15 @@ Quando há orientação revisada, suas fontes são os fundamentos citados, sem m
 A nova orientação sobre misturas explica a necessidade de Parecer Técnico da DFPC prevista no art. 3º; não classifica automaticamente o produto.
 
 Testes SQL reproduzíveis: `tests/respostas-empresariais.sql`.
+
+## Reconferência empresarial — segunda rodada de 08/10/2026
+
+Foram comparados 42 registros textuais aos PDFs oficiais fornecidos das Portarias 56/2017, 41/2018, 147/2019 e 2.566/2025 e ao Decreto 10.030 consolidado no Planalto. Destes, 41 permanecem utilizáveis; o texto da dispensa de registro da Portaria 56, alterado pela 41, fica pendente de comprovação da cadeia de vigência e não fundamenta respostas. Evidências por dispositivo: `curadoria-2026-10-08.json`. Não se atualizou a data global de vigência das normas.
+
+Seis registros anteriores resumidos, incompletos ou com redação riscada foram desmarcados como conferidos; os dados anteriores foram preservados para auditoria. Novos registros individualizam os arts. 80, 81, 82, 98 e 99 do Anexo I do Decreto 10.030. O art. 23 foi separado da redação riscada do § 2º. A exceção do parágrafo único do art. 28 da Portaria 147 e o parágrafo único do art. 64 das Normas da Portaria 2.566 foram incluídos.
+
+Links exatos adicionais: Decretos 11.615/2023, 12.345/2024 e 9.847/2019, Lei 10.826/2003 (Planalto) e Portaria 167/2024 (DOU, localizada no índice Siscomex; destino ainda indisponível). Links de índice não foram apresentados como documentos de normas individuais.
+
+A orientação de importação também indica a fonte complementar oficial https://www.gov.br/siscomex/pt-br/noticias/noticias-siscomex-importacao/Comunicados/importacao-no-2026-082, recuperada em 08/10/2026. A dispensa de LPCO ali descrita exige verificar as condições do comunicado; a aplicação não trata toda importação de PCE como obrigada ou dispensada. Fontes complementares são distinguidas dos dispositivos transcritos.
+
+O índice DFPC continuou indisponível (HTTP 502). Esta revisão não comprova atualização integral das 59 normas, todos os anexos ou todas as revogações. O painel registra as pendências e separa conferência textual de vigência.

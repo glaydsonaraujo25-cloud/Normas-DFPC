@@ -14,6 +14,7 @@ export function PerguntasRevisadas({
 }) {
   const [guias, setGuias] = useState<Pergunta[]>([]);
   const [busca, setBusca] = useState("");
+  const [atividade, setAtividade] = useState("todos");
   const [estado, setEstado] = useState("Carregando perguntas revisadas…");
   useEffect(() => {
     let ativo = true;
@@ -43,8 +44,12 @@ export function PerguntasRevisadas({
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase();
-  const filtrados = guias.filter((g) =>
-    normalizar(`${g.titulo} ${g.pergunta_modelo}`).includes(normalizar(busca)),
+  const filtrados = guias.filter(
+    (g) =>
+      normalizar(`${g.titulo} ${g.pergunta_modelo}`).includes(
+        normalizar(busca),
+      ) &&
+      (atividade === "todos" || g.atividade === atividade),
   );
   const rotulo = (lista: readonly (readonly [string, string])[], v: string) =>
     lista.find((o) => o[0] === v)?.[1] || v;
@@ -54,7 +59,8 @@ export function PerguntasRevisadas({
       <h2>Perguntas com orientação revisada</h2>
       <p>
         Escolha uma pergunta para preencher a consulta. Ao consultar, a
-        aplicação verifica se os fundamentos continuam aplicáveis na data atual.
+        aplicação verifica a situação e as datas dos fundamentos no acervo
+        atual.
       </p>
       <label>
         Buscar pergunta revisada
@@ -63,6 +69,20 @@ export function PerguntasRevisadas({
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
         />
+      </label>
+      <label>
+        Filtrar orientações por atividade
+        <select
+          value={atividade}
+          onChange={(e) => setAtividade(e.target.value)}
+        >
+          <option value="todos">Todas as atividades</option>
+          {ATIVIDADES.filter(([id]) => id !== "todos").map(([id, texto]) => (
+            <option key={id} value={id}>
+              {texto}
+            </option>
+          ))}
+        </select>
       </label>
       {estado ? (
         <p role="status">{estado}</p>

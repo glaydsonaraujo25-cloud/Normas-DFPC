@@ -65,6 +65,12 @@ export type Fonte = {
   nome_arquivo: string | null;
   sha256: string | null;
   tipo_conteudo: string;
+  conferencia_textual?: {
+    data: string;
+    origem: string;
+    documento: string | null;
+    observacao: string | null;
+  } | null;
   relacoes: Array<{
     tipo: string;
     norma_relacionada: string;
@@ -76,6 +82,11 @@ export type SecaoOrientacao = {
   titulo: string;
   texto: string;
   dispositivo_ids: string[];
+  fontes_complementares?: Array<{
+    titulo: string;
+    url: string;
+    verificado_em: string;
+  }>;
 };
 export type Orientacao = {
   id: string;
@@ -110,6 +121,16 @@ const normalizar = (t: string) =>
     .toLowerCase();
 export function faltantes(pergunta: string, c: ContextoEmpresa): string[] {
   const q = normalizar(pergunta);
+  if (
+    /(como solicitar|como revalidar)/.test(q) &&
+    /registro/.test(q) &&
+    /empresa nao fabricante|fabricacao de pce/.test(q)
+  )
+    return [];
+  if (/quais documentos.*portaria.*2[.,]?566.*duimp/.test(q)) return [];
+  if (/ter (cr|registro).*qualquer atividade/.test(q)) return [];
+  if (/quais (regras gerais|cuidados normativos|requisitos gerais)/.test(q))
+    return [];
   if (/(como verificar|procedimento)/.test(q) && /(mistura|solucao)/.test(q))
     return [];
   if (
@@ -165,6 +186,56 @@ export function faltantes(pergunta: string, c: ContextoEmpresa): string[] {
     );
   return itens;
 }
+export function conflitosContexto(
+  pergunta: string,
+  c: ContextoEmpresa,
+): string[] {
+  const q = normalizar(pergunta);
+  const produtos = [
+    ["explosivos", /explosiv/],
+    ["quimicos", /quimic|mistura|solucao/],
+    ["blindagem", /blind|colete|balistic/],
+    ["pirotecnicos", /pirotec|fogos/],
+    ["menos_letais", /menor potencial|menos.letal|espargidor/],
+    ["municoes", /munic/],
+    ["armas", /armas? de fogo/],
+  ] as const;
+  const atividades = [
+    ["fabricacao", /fabricacao|fabricar/],
+    ["comercio", /comercio|comercializ|vender|vendas/],
+    ["aquisicao", /adquirir|aquisicao|comprar/],
+    ["transporte", /transport|trafego/],
+    ["armazenagem", /armazen|estocar/],
+    ["importacao", /import/],
+    ["exportacao", /export/],
+  ] as const;
+  const familias = produtos
+    .filter(([, padrao]) => padrao.test(q))
+    .map(([id]) => id);
+  const operacoes = atividades
+    .filter(([, padrao]) => padrao.test(q))
+    .map(([id]) => id);
+  const itens: string[] = [];
+  if (
+    c.produto !== "todos" &&
+    familias.length === 1 &&
+    !familias.includes(c.produto as (typeof familias)[number])
+  )
+    itens.push(
+      "O produto selecionado difere do produto mencionado na pergunta. Ajuste o filtro ou a pergunta.",
+    );
+  if (
+    c.atividade !== "todos" &&
+    operacoes.length === 1 &&
+    !operacoes.includes(c.atividade as (typeof operacoes)[number]) &&
+    c.atividade !== "registro"
+  )
+    itens.push(
+      "A atividade selecionada difere da operação mencionada na pergunta. Ajuste o filtro ou a pergunta.",
+    );
+  return itens;
+}
+
 export function fonteAtual(f: Fonte, data: string): boolean {
   return Boolean(
     f.dispositivo_id &&
@@ -244,6 +315,12 @@ function validarFonte(v: unknown): v is Fonte {
       "nome_arquivo",
       "sha256",
     ].every((k) => textoOuNulo(v[k])) &&
+    (v.conferencia_textual == null ||
+      (objeto(v.conferencia_textual) &&
+        typeof v.conferencia_textual.data === "string" &&
+        typeof v.conferencia_textual.origem === "string" &&
+        textoOuNulo(v.conferencia_textual.documento) &&
+        textoOuNulo(v.conferencia_textual.observacao))) &&
     typeof v.literal_conferido === "boolean" &&
     (v.pagina === null || typeof v.pagina === "number") &&
     typeof v.relevancia === "number" &&
@@ -302,7 +379,17 @@ export function validarConsulta(v: unknown): v is Consulta {
             typeof sec.titulo === "string" &&
             typeof sec.texto === "string" &&
             Array.isArray(sec.dispositivo_ids) &&
-            sec.dispositivo_ids.every((id) => typeof id === "string"),
+            sec.dispositivo_ids.every((id) => typeof id === "string") &&
+            (sec.fontes_complementares === undefined ||
+              (Array.isArray(sec.fontes_complementares) &&
+                sec.fontes_complementares.every(
+                  (f) =>
+                    objeto(f) &&
+                    typeof f.titulo === "string" &&
+                    typeof f.url === "string" &&
+                    !!urlSegura(f.url) &&
+                    typeof f.verificado_em === "string",
+                ))),
         ),
     )
   );
@@ -396,7 +483,14 @@ export function coberturaConsulta(consulta: Consulta) {
       o.secoes.flatMap((s) => s.dispositivo_ids.filter((id) => !ids.has(id))),
     ),
   );
-  return { titulo, semLink, semData, fundamentosAusentes: pendentes.size };
+  const textosReconferidos = fontes.filter((f) => f.conferencia_textual).length;
+  return {
+    titulo,
+    semLink,
+    semData,
+    fundamentosAusentes: pendentes.size,
+    textosReconferidos,
+  };
 }
 
 export function exportarConsulta(r: RegistroConsulta) {
@@ -411,6 +505,7 @@ export function exportarConsulta(r: RegistroConsulta) {
     `Versão: ${r.consulta.versao}`,
     `Alcance: ${cobertura.titulo}`,
     `Links oficiais pendentes: ${cobertura.semLink}`,
+    `Textos com reconferência documentada: ${cobertura.textosReconferidos} de ${r.consulta.fontes.length}`,
     `Fontes sem data de verificação: ${cobertura.semData}`,
     `Fundamentos citados não presentes na consulta: ${cobertura.fundamentosAusentes}`,
     "O alcance descreve o conteúdo disponível; não representa uma pontuação de confiança nem uma confirmação integral da legislação atual.",
@@ -430,6 +525,10 @@ export function exportarConsulta(r: RegistroConsulta) {
         `### ${s.titulo}`,
         s.texto,
         `Dispositivos: ${s.dispositivo_ids.join(", ")}`,
+        ...(s.fontes_complementares || []).map(
+          (f) =>
+            `Fonte complementar: ${f.titulo} — ${urlSegura(f.url) || "link inválido"} (verificada em ${f.verificado_em})`,
+        ),
         "",
       ]),
     ]),
@@ -439,6 +538,10 @@ export function exportarConsulta(r: RegistroConsulta) {
       `Situação: ${f.status} | Dispositivo: ${f.status_dispositivo || "não vinculado"}`,
       `Última verificação cadastrada: ${f.ultima_verificacao || "não informada"}`,
       `Fonte: ${f.nome_arquivo || "não informada"}`,
+      f.conferencia_textual
+        ? `Reconferência textual: ${f.conferencia_textual.data} — ${f.conferencia_textual.origem}`
+        : "Reconferência textual documentada: pendente",
+      f.conferencia_textual?.observacao || "",
       urlSegura(f.fonte_oficial) || "",
       `SHA-256: ${f.sha256 || "não informado"}`,
       "",

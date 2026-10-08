@@ -40,3 +40,13 @@ A interface publicada foi conferida em navegador: consulta com orientação/cita
 - A identificação de uma referência explícita tem prioridade sobre o reconhecimento genérico de perguntas de vigência.
 - Opções retornadas pela API são validadas antes de exibição e preservação no histórico.
 - Não foram alterados conteúdos normativos, status ou datas de conferência.
+
+## Quinta atualização — curadoria e cobertura empresarial
+
+- 15 testes unitários e build aprovados.
+- 17 cenários via REST público: contexto suficiente, contrato validado pelo cliente, orientação recuperada e fontes aplicáveis. Script: `node --env-file=.env.local tests/consulta-api.ts`.
+- Todas as 17 orientações devolvem cada fundamento citado. Testes SQL verificam filtros contraditórios, não substituição de caso específico e retirada de orientação se um fundamento deixa de ser conferido (`tests/curadoria-empresarial.sql`, transação revertida).
+- 12 casos de referência exata aprovados. Expectativas atualizadas: a dispensa da Portaria 56 fica pendente, seu caput continua recuperável; o art. 81 do Anexo I agora possui texto individual conferido.
+- 41 textos com reconferência documentada; um adicional fica pendente de vigência. A data global de vigência não foi avançada.
+- Advisor de segurança: apenas os dois avisos anteriores de extensões `vector` e `pg_trgm` no esquema público; nenhuma nova exposição de tabela, RLS ou função. A realocação dessas extensões exige uma migração própria com avaliação das dependências.
+- A leitura das fontes não equivale a auditoria integral das 59 normas; limitações em `FONTES_OFICIAIS.md`.

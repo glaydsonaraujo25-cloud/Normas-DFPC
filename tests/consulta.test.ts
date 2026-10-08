@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   coberturaConsulta,
+  conflitosContexto,
   contextoInicial,
   faltantes,
   fonteAtual,
@@ -304,5 +305,48 @@ test("distingue cobertura e denuncia referências ausentes sem usar relevância 
     coberturaConsulta({ ...documental, orientacoes: [orientacao] })
       .fundamentosAusentes,
     1,
+  );
+});
+
+test("detecta filtros contraditórios sem bloquear registro ou casos com múltiplas operações", () => {
+  const c = contextoInicial();
+  assert.equal(
+    conflitosContexto("Como importar explosivos?", {
+      ...c,
+      produto: "quimicos",
+      atividade: "exportacao",
+    }).length,
+    2,
+  );
+  assert.deepEqual(
+    conflitosContexto("Registro para importar explosivos", {
+      ...c,
+      produto: "explosivos",
+      atividade: "registro",
+    }),
+    [],
+  );
+  assert.deepEqual(
+    conflitosContexto("Transporte e armazenagem de explosivos", {
+      ...c,
+      produto: "explosivos",
+      atividade: "transporte",
+    }),
+    [],
+  );
+});
+test("orientações gerais não exigem detalhes de uma operação individual", () => {
+  for (const q of [
+    "Quais documentos a Portaria 2.566 prevê para registrar a DUIMP de PCE?",
+    "Como solicitar registro para fabricação de PCE?",
+    "Como revalidar registro de empresa não fabricante?",
+    "Quais regras gerais se aplicam à exportação de PCE?",
+  ])
+    assert.deepEqual(faltantes(q, contextoInicial()), [], q);
+  assert.ok(
+    faltantes(
+      "Quais documentos preciso para importar este produto?",
+      contextoInicial(),
+    ).length > 0,
   );
 });

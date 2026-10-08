@@ -1,0 +1,444 @@
+[
+  {
+    "titulo": "Registro para atividade empresarial com PCE",
+    "pergunta_modelo": "Minha empresa precisa de registro para comercializar produtos químicos?",
+    "produto": "quimicos",
+    "atividade": "todos",
+    "secoes": [
+      {
+        "titulo": "Regra geral",
+        "texto": "Se o produto químico estiver enquadrado como PCE, o art. 7º, caput, do Anexo I do Decreto 10.030 estabelece registro para o exercício próprio ou terceirizado das atividades com PCE. A expressão “produto químico” não basta para definir se um produto é controlado. Não conclua dispensa a partir das antigas exceções sem conferir sua cadeia normativa.",
+        "referencias": [
+          {
+            "norma": "Decreto nº 10.030, de 30 de setembro de 2019",
+            "referencia": "Anexo I, art. 7º, caput"
+          }
+        ]
+      },
+      {
+        "titulo": "Aplicação à empresa",
+        "texto": "Confira no registro os produtos e a atividade de comércio efetivamente autorizados. O exercício da atividade deve ficar restrito às condições do registro; este resumo não identifica o enquadramento de um produto específico.",
+        "referencias": [
+          {
+            "norma": "Portaria nº 56 COLOG, de 5 de junho de 2017",
+            "referencia": "Art. 7º e §§ 1º e 2º"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "titulo": "Apostilamento de atividade no registro",
+    "pergunta_modelo": "Como funciona o apostilamento de atividade no registro da empresa?",
+    "produto": "todos",
+    "atividade": "todos",
+    "secoes": [
+      {
+        "titulo": "Resposta direta",
+        "texto": "Apostilamento é a inclusão, exclusão ou atualização de dados da pessoa, do PCE, da atividade ou de informações complementares, por iniciativa do interessado. A solicitação não equivale ao deferimento: a atividade deve permanecer dentro das condições do registro.",
+        "referencias": [
+          {
+            "norma": "Portaria nº 56 COLOG, de 5 de junho de 2017",
+            "referencia": "Art. 22"
+          },
+          {
+            "norma": "Portaria nº 56 COLOG, de 5 de junho de 2017",
+            "referencia": "Art. 7º e §§ 1º e 2º"
+          }
+        ]
+      },
+      {
+        "titulo": "Procedimento para atividades diferentes da fabricação",
+        "texto": "Para as demais atividades, o art. 52 remete o requerimento e a documentação aos anexos B3 e B5, com protocolo no SFPC da Região Militar ou Organização Militar do SisFPC de vinculação. A fabricação tem procedimento próprio; esta resposta não reproduz integralmente os anexos documentais.",
+        "referencias": [
+          {
+            "norma": "Portaria nº 56 COLOG, de 5 de junho de 2017",
+            "referencia": "Art. 52 e parágrafo único"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "titulo": "Tratamento administrativo de importação de PCE",
+    "pergunta_modelo": "Quais requisitos se aplicam à importação de PCE?",
+    "produto": "todos",
+    "atividade": "todos",
+    "secoes": [
+      {
+        "titulo": "Resposta direta",
+        "texto": "A Portaria 2.566 prevê tratamento administrativo no Portal Único, com LPCO e conferência da DUIMP pelo Exército. A conferência abrange documentação e inspeção física ou remota; a forma de inspeção depende do produto e das condições previstas no art. 2º.",
+        "referencias": [
+          {
+            "norma": "Portaria C Ex nº 2.566, de 8 de outubro de 2025",
+            "referencia": "Normas, art. 2º — texto completo"
+          }
+        ]
+      },
+      {
+        "titulo": "Etapas e momento da licença",
+        "texto": "Na operação sujeita a LPCO, o processo inclui registro, análise e deferimento da licença, registro da DUIMP, inspeção quando aplicável e deferimento da DUIMP. A LPCO exigível deve ser obtida antes do embarque no exterior.",
+        "referencias": [
+          {
+            "norma": "Portaria C Ex nº 2.566, de 8 de outubro de 2025",
+            "referencia": "Normas, art. 3º — texto completo"
+          },
+          {
+            "norma": "Portaria C Ex nº 2.566, de 8 de outubro de 2025",
+            "referencia": "Normas, art. 12 — texto completo"
+          }
+        ]
+      },
+      {
+        "titulo": "Dispensa de LPCO não significa ausência de controle",
+        "texto": "O comunicado Siscomex 082/2026 informa que, desde 10/08/2026, produtos sujeitos à anuência DFPC e dispensados de LPCO pelo art. 5º, § 1º, da Portaria Secex 249/2023 estão sujeitos à inspeção na DUIMP. É preciso conferir o tratamento administrativo da operação; esta resposta não determina se o caso concreto tem dispensa.",
+        "referencias": [
+          {
+            "norma": "Portaria C Ex nº 2.566, de 8 de outubro de 2025",
+            "referencia": "Normas, art. 2º — texto completo"
+          }
+        ],
+        "fontes_complementares": [
+          {
+            "titulo": "Siscomex — Importação nº 082/2026",
+            "url": "https://www.gov.br/siscomex/pt-br/noticias/noticias-siscomex-importacao/Comunicados/importacao-no-2026-082",
+            "verificado_em": "2026-10-08"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "titulo": "Concessão de registro para empresa não fabricante",
+    "pergunta_modelo": "Como solicitar registro de empresa não fabricante para atividades com PCE?",
+    "produto": "todos",
+    "atividade": "registro",
+    "secoes": [
+      {
+        "titulo": "Próximo passo",
+        "texto": "O art. 50 remete o requerimento e os documentos aos anexos B3 e B5 da Portaria 56. O protocolo é no SFPC da Região Militar ou Organização Militar do SisFPC de vinculação. Identifique o produto, a atividade e o local da empresa antes de reunir o processo.",
+        "referencias": [
+          {
+            "norma": "Portaria nº 56 COLOG, de 5 de junho de 2017",
+            "referencia": "Art. 50 e parágrafo único"
+          }
+        ],
+        "fontes_complementares": [
+          {
+            "titulo": "Serviço oficial — conceder CR de pessoa jurídica não fabricante",
+            "url": "https://www.gov.br/pt-br/servicos/conceder-certificado-de-registro-para-pessoa-juridica-nao-fabricante-cr-pj?id=3197&origem=servico",
+            "verificado_em": "2026-10-08"
+          }
+        ]
+      },
+      {
+        "titulo": "Etapas do processo",
+        "texto": "O art. 18 descreve preparação e protocolo, análise, vistoria quando cabível, decisão, publicação e informação ao interessado. Não se presume que toda operação exige vistoria nem que protocolar o pedido já autoriza a atividade. A lista integral dos anexos deve ser conferida no procedimento aplicável.",
+        "referencias": [
+          {
+            "norma": "Portaria nº 56 COLOG, de 5 de junho de 2017",
+            "referencia": "Art. 18, incisos I a VI"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "titulo": "Registro para fabricação de PCE",
+    "pergunta_modelo": "Como solicitar registro para fabricação de PCE?",
+    "produto": "todos",
+    "atividade": "fabricacao",
+    "secoes": [
+      {
+        "titulo": "Competência e documentação",
+        "texto": "A Portaria 56 atribui à DFPC os processos de registro para fabricação. O art. 35 remete a documentação de concessão ao anexo A2 e determina seu protocolo na DFPC. Este resumo não substitui a lista documental integral nem a identificação exata do produto.",
+        "referencias": [
+          {
+            "norma": "Portaria nº 56 COLOG, de 5 de junho de 2017",
+            "referencia": "Art. 29"
+          },
+          {
+            "norma": "Portaria nº 56 COLOG, de 5 de junho de 2017",
+            "referencia": "Art. 35 e parágrafo único"
+          }
+        ]
+      },
+      {
+        "titulo": "Avaliação do produto",
+        "texto": "O art. 34 prevê aprovação de protótipo por avaliação técnica antes da concessão ou do apostilamento para fabricação, ressalvando os PCE dispensados de avaliação. É necessário conferir a regra específica de avaliação do produto; a aplicação não conclui dispensa automaticamente.",
+        "referencias": [
+          {
+            "norma": "Portaria nº 56 COLOG, de 5 de junho de 2017",
+            "referencia": "Art. 34"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "titulo": "Limites do registro empresarial",
+    "pergunta_modelo": "Ter CR autoriza qualquer atividade com PCE?",
+    "produto": "todos",
+    "atividade": "todos",
+    "secoes": [
+      {
+        "titulo": "Resposta direta",
+        "texto": "Não. A atividade deve se restringir às condições do registro. A apostila registra as atividades e os PCE autorizados. Ter registro não significa que qualquer produto, atividade ou estabelecimento esteja autorizado.",
+        "referencias": [
+          {
+            "norma": "Portaria nº 56 COLOG, de 5 de junho de 2017",
+            "referencia": "Art. 7º e §§ 1º e 2º"
+          }
+        ]
+      },
+      {
+        "titulo": "Outros órgãos",
+        "texto": "O registro no Exército não configura autorização prévia nem pré-requisito para licenças de outros órgãos, e não afasta sua fiscalização. Confira as autorizações aplicáveis à operação além do registro no Exército.",
+        "referencias": [
+          {
+            "norma": "Portaria nº 56 COLOG, de 5 de junho de 2017",
+            "referencia": "Art. 13"
+          },
+          {
+            "norma": "Portaria nº 56 COLOG, de 5 de junho de 2017",
+            "referencia": "Art. 14"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "titulo": "Revalidação de empresa não fabricante",
+    "pergunta_modelo": "Como revalidar registro de empresa não fabricante para atividades com PCE?",
+    "produto": "todos",
+    "atividade": "registro",
+    "secoes": [
+      {
+        "titulo": "Documentação e protocolo",
+        "texto": "Para atividades diferentes da fabricação, o art. 51 remete o requerimento e os documentos aos anexos B3 e B5. Prevê protocolo no SFPC da Região Militar ou Organização Militar do SisFPC de vinculação a partir de noventa dias antes do término da validade do registro. Confira a validade do seu documento e as regras específicas da atividade; não se presume prorrogação automática apenas por iniciar a preparação.",
+        "referencias": [
+          {
+            "norma": "Portaria nº 56 COLOG, de 5 de junho de 2017",
+            "referencia": "Art. 51 e parágrafo único"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "titulo": "Tráfego empresarial de PCE",
+    "pergunta_modelo": "Quais regras gerais se aplicam ao transporte empresarial de PCE?",
+    "produto": "todos",
+    "atividade": "transporte",
+    "secoes": [
+      {
+        "titulo": "Guia de tráfego e trajeto",
+        "texto": "No Regulamento, tráfego é a circulação de PCE no território nacional. A guia materializa a autorização e a regra do art. 82, caput, determina que a pessoa que transporta porte a guia correspondente, da origem ao destino, sujeita à fiscalização no trajeto. Confira as normas complementares e a situação da operação antes do transporte.",
+        "referencias": [
+          {
+            "norma": "Decreto nº 10.030, de 30 de setembro de 2019",
+            "referencia": "Anexo I, art. 80"
+          },
+          {
+            "norma": "Decreto nº 10.030, de 30 de setembro de 2019",
+            "referencia": "Anexo I, art. 81, caput e parágrafo único"
+          },
+          {
+            "norma": "Decreto nº 10.030, de 30 de setembro de 2019",
+            "referencia": "Anexo I, art. 82, caput"
+          }
+        ]
+      },
+      {
+        "titulo": "Produto, modalidade e público",
+        "texto": "O art. 6º da Portaria 56 preserva as regras próprias de cada produto e meio de transporte. Para empresas de segurança privada e transporte de valores, o art. 83, § 2º, do Anexo I determina observar as normas da Polícia Federal. Não aplique regras de CAC ou de outro público à empresa por semelhança textual.",
+        "referencias": [
+          {
+            "norma": "Portaria nº 56 COLOG, de 5 de junho de 2017",
+            "referencia": "Art. 6º"
+          },
+          {
+            "norma": "Decreto nº 10.030, de 30 de setembro de 2019",
+            "referencia": "Anexo I, art. 83, § 2º"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "titulo": "Armazenagem empresarial de PCE",
+    "pergunta_modelo": "Quais cuidados normativos se aplicam à armazenagem empresarial de PCE?",
+    "produto": "todos",
+    "atividade": "armazenagem",
+    "secoes": [
+      {
+        "titulo": "Local e condições autorizadas",
+        "texto": "A Portaria 56 define armazenagem como prestação de serviço de acondicionamento em depósitos em local autorizado. Confira se o registro e as condições do estabelecimento abrangem a atividade e o produto. As exigências variam por família de PCE; esta resposta não define capacidade nem distância de segurança de um depósito.",
+        "referencias": [
+          {
+            "norma": "Portaria nº 56 COLOG, de 5 de junho de 2017",
+            "referencia": "Art. 5º, § 1º"
+          },
+          {
+            "norma": "Portaria nº 56 COLOG, de 5 de junho de 2017",
+            "referencia": "Art. 7º e §§ 1º e 2º"
+          }
+        ]
+      },
+      {
+        "titulo": "Segurança e fiscalização",
+        "texto": "O Regulamento distingue segurança de área e segurança de PCE. A pessoa jurídica detentora de registro é responsável pelo planejamento e implementação das medidas, em plano de segurança, com responsável designado e documento atualizado e disponível à fiscalização. Confira as normas específicas do produto para complementar o plano.",
+        "referencias": [
+          {
+            "norma": "Decreto nº 10.030, de 30 de setembro de 2019",
+            "referencia": "Anexo I, art. 98, caput e §§ 1º e 2º"
+          },
+          {
+            "norma": "Decreto nº 10.030, de 30 de setembro de 2019",
+            "referencia": "Anexo I, art. 99, caput e §§ 1º a 3º"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "titulo": "Registros de estoque e vendas",
+    "pergunta_modelo": "Quais controles de estoque e vendas uma empresa que comercializa PCE deve manter?",
+    "produto": "todos",
+    "atividade": "comercio",
+    "secoes": [
+      {
+        "titulo": "Resposta direta",
+        "texto": "O art. 24 do Anexo I exige manter à disposição da fiscalização os dados de estoques e a relação das vendas por cinco anos, na forma estabelecida pelo Comando do Exército. Também prevê manter atualizado o sistema informatizado online de estoques e vendas. Confira o sistema e os procedimentos específicos do produto; esta orientação não presume que um sistema serve para todas as famílias.",
+        "referencias": [
+          {
+            "norma": "Decreto nº 10.030, de 30 de setembro de 2019",
+            "referencia": "Anexo I, art. 24"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "titulo": "Documentos de importação na DUIMP",
+    "pergunta_modelo": "Quais documentos a Portaria 2.566 prevê para registrar a DUIMP de PCE?",
+    "produto": "todos",
+    "atividade": "importacao",
+    "secoes": [
+      {
+        "titulo": "Documentação prevista no dispositivo",
+        "texto": "O art. 64 lista invoice, packing list, conhecimento de embarque, taxa de fiscalização e comprovante, e planilha SICOFA quando for o caso. Seu parágrafo único exige conhecimento de embarque datado após o deferimento da LPCO. A lista pertence a esse dispositivo; confira também os demais requisitos e eventuais tratamentos específicos da operação.",
+        "referencias": [
+          {
+            "norma": "Portaria C Ex nº 2.566, de 8 de outubro de 2025",
+            "referencia": "Normas, art. 64 — texto completo"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "titulo": "Procedimento geral de exportação de PCE",
+    "pergunta_modelo": "Quais requisitos gerais se aplicam à exportação empresarial de PCE?",
+    "produto": "todos",
+    "atividade": "exportacao",
+    "secoes": [
+      {
+        "titulo": "Licenciamento e registro",
+        "texto": "A Portaria 2.566 prevê o controle administrativo da exportação no Portal Único, com registro e análise de LPCO, inspeção quando cabível e deferimento. A anuência cabe à RM de vinculação. Só podem ser exportados produtos apostilados ao registro; o art. 95 prevê autorização provisória excepcional da DFPC antes da aprovação de protótipo.",
+        "referencias": [
+          {
+            "norma": "Portaria C Ex nº 2.566, de 8 de outubro de 2025",
+            "referencia": "Normas, art. 93 — texto completo"
+          },
+          {
+            "norma": "Portaria C Ex nº 2.566, de 8 de outubro de 2025",
+            "referencia": "Normas, art. 94 — texto completo"
+          },
+          {
+            "norma": "Portaria C Ex nº 2.566, de 8 de outubro de 2025",
+            "referencia": "Normas, art. 95 — texto completo"
+          }
+        ]
+      },
+      {
+        "titulo": "Documentação e embarque",
+        "texto": "O art. 97 lista documentação com condições conforme o produto: avaliação ou autorização provisória, taxas, licença de importação do destino ou equivalente, CUF ou carta diplomática nos casos ali indicados e Termo de Inspeção. O art. 124 veda embarque sem LPCO de exportação deferida. Confira o produto, o país e se a exportação é definitiva ou temporária; esta é uma orientação geral.",
+        "referencias": [
+          {
+            "norma": "Portaria C Ex nº 2.566, de 8 de outubro de 2025",
+            "referencia": "Normas, art. 97 — texto completo"
+          },
+          {
+            "norma": "Portaria C Ex nº 2.566, de 8 de outubro de 2025",
+            "referencia": "Normas, art. 124 — texto completo"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "titulo": "Transporte de explosivos: documentos e escolta",
+    "pergunta_modelo": "Quais documentos e regras de escolta se aplicam ao transporte de explosivos?",
+    "produto": "explosivos",
+    "atividade": "transporte",
+    "secoes": [
+      {
+        "titulo": "Documentos de tráfego",
+        "texto": "A Portaria 147 exige guia de tráfego correspondente durante todos os percursos. O art. 69 determina anexar Termo de Transferência de Posse e DANFE ou documento fiscal; o termo deve ser assinado pelo fornecedor e pelo adquirente. Confira as demais condições do transporte antes da operação.",
+        "referencias": [
+          {
+            "norma": "Portaria nº 147 COLOG, de 21 de novembro de 2019",
+            "referencia": "Art. 67"
+          },
+          {
+            "norma": "Portaria nº 147 COLOG, de 21 de novembro de 2019",
+            "referencia": "Art. 69 e parágrafo único"
+          }
+        ]
+      },
+      {
+        "titulo": "Regra e exceção de escolta",
+        "texto": "O art. 28 estabelece escolta armada para transporte de explosivos em território nacional. Seu parágrafo único excepciona a circulação de UMB quando transporta exclusivamente emulsão base. Não amplie essa exceção a outras cargas ou veículos; confira o produto, a modalidade e as demais normas aplicáveis.",
+        "referencias": [
+          {
+            "norma": "Portaria nº 147 COLOG, de 21 de novembro de 2019",
+            "referencia": "Art. 28"
+          },
+          {
+            "norma": "Portaria nº 147 COLOG, de 21 de novembro de 2019",
+            "referencia": "Art. 28, parágrafo único"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "titulo": "Armazenagem de explosivos: registro e controles",
+    "pergunta_modelo": "Quais controles normativos se aplicam à armazenagem de explosivos?",
+    "produto": "explosivos",
+    "atividade": "armazenagem",
+    "secoes": [
+      {
+        "titulo": "Local de armazenagem vinculado à aquisição",
+        "texto": "O art. 63 condiciona a autorização de aquisição à existência de armazenagem própria ou terceirizada registrada, ressalvando emprego imediato. A armazenagem própria deve estar apostilada ao registro; na terceirizada, há exigência de contrato com empresa que tenha a atividade apostilada. Confira as condições da modalidade; isso não autoriza armazenar em qualquer local.",
+        "referencias": [
+          {
+            "norma": "Portaria nº 147 COLOG, de 21 de novembro de 2019",
+            "referencia": "Art. 63 e §§ 1º a 4º"
+          }
+        ]
+      },
+      {
+        "titulo": "Monitoramento e registros",
+        "texto": "O art. 30 determina monitoramento eletrônico permanente do depósito e conservação das gravações por pelo menos trinta dias. A capacidade e as distâncias de segurança exigem conferência específica e avaliação do local; esta orientação não calcula nem autoriza capacidade de armazenagem.",
+        "referencias": [
+          {
+            "norma": "Portaria nº 147 COLOG, de 21 de novembro de 2019",
+            "referencia": "Art. 30 e parágrafo único"
+          }
+        ]
+      }
+    ]
+  }
+]

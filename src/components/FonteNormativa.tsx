@@ -32,7 +32,13 @@ export function FonteNormativa({
           principal.
         </p>
       )}
-      <p>{fonte.conteudo}</p>
+      <p className="normative-text">{fonte.conteudo}</p>
+      {fonte.conferencia_textual && (
+        <p className="muted">
+          Texto reconferido em {fonte.conferencia_textual.data} ·{" "}
+          {fonte.conferencia_textual.origem}.
+        </p>
+      )}
       <details>
         <summary>Ver origem e verificação</summary>
         {fonte.texto_literal &&
@@ -45,8 +51,20 @@ export function FonteNormativa({
         <dl>
           <dt>Documento</dt>
           <dd>{fonte.nome_arquivo || "Documento de origem não vinculado"}</dd>
-          <dt>Última verificação de vigência cadastrada</dt>
+          <dt>Verificação de vigência informada na norma</dt>
           <dd>{fonte.ultima_verificacao || "Não informada"}</dd>
+          <dt>Reconferência textual documentada</dt>
+          <dd>
+            {fonte.conferencia_textual
+              ? `${fonte.conferencia_textual.data} · ${fonte.conferencia_textual.origem}`
+              : "Ainda não documentada nesta revisão"}
+          </dd>
+          {fonte.conferencia_textual?.observacao && (
+            <>
+              <dt>Observação da conferência</dt>
+              <dd>{fonte.conferencia_textual.observacao}</dd>
+            </>
+          )}
           <dt>Identificador do dispositivo</dt>
           <dd>{fonte.dispositivo_id}</dd>
           {fonte.vigencia_inicio && (
