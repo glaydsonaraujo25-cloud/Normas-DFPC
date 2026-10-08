@@ -589,7 +589,7 @@ export default function App() {
                       <h2>{consulta.pergunta}</h2>
                     </div>
                     <span className="badge">
-                      {fontes.length} fundamento{fontes.length !== 1 ? "s" : ""}
+                      {consulta.consulta.historico_normativo !== undefined ? "Histórico normativo" : consulta.consulta.metodologia ? "Vigência e redação" : `${fontes.length} fundamento${fontes.length !== 1 ? "s" : ""}`}
                     </span>
                   </div>
                   <div className="case-meta">
@@ -783,7 +783,7 @@ export default function App() {
                         <p>
                           {consulta.consulta.referencia_exata
                             ? "A situação exibida corresponde ao cadastro desses dispositivos. Para aplicar a norma a uma operação empresarial, consulte também os demais requisitos e condições pertinentes."
-                            : "Confirme que o produto, a atividade e as condições descritas nos dispositivos correspondem à operação da empresa. A busca textual identifica fundamentos; a classificação de relevância não comprova autorização ou dispensa."}
+                            : "Confirme que o produto, a atividade e as condições descritas nos dispositivos correspondem ao público e ao caso informado. A busca textual identifica fundamentos; a classificação de relevância não comprova autorização ou dispensa."}
                         </p>
                         {consulta.consulta.fontes_excluidas > 0 && (
                           <p>
@@ -834,7 +834,7 @@ export default function App() {
                   <Building2 />
                   <h3>Produto e atividade</h3>
                   <p>
-                    Filtros para situações empresariais e esclarecimento quando
+                    Filtros por público, produto e atividade; esclarecimento quando
                     faltam dados.
                   </p>
                 </article>
