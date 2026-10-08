@@ -14,6 +14,7 @@ const ignorados = new Set(
   ),
 );
 function termo(s: string): string {
+  if (/\d/.test(s)) return s;
   if (/^(renov|revalid)/.test(s)) return "revalidacao";
   if (/^(vender|venda|comerc|comercial)/.test(s)) return "comercio";
   if (/^(compr|adquir|aquis)/.test(s)) return "aquisicao";
@@ -32,6 +33,23 @@ function termos(s: string): Set<string> {
       .filter((s) => s.length > 1 && !ignorados.has(s))
       .map(termo),
   );
+}
+// Uma edição em palavras longas; siglas e referências numéricas permanecem exatas.
+function proximo(a: string, b: string): boolean {
+  if (a === b) return true;
+  if (Math.min(a.length, b.length) < 5 || /\d/.test(a + b)) return false;
+  if (Math.abs(a.length - b.length) > 1) return false;
+  if (a.length === b.length) {
+    const diferentes = [...a].flatMap((letra, i) => letra !== b[i] ? [i] : []);
+    return diferentes.length === 1 ||
+      (diferentes.length === 2 && diferentes[1] === diferentes[0] + 1 &&
+        a[diferentes[0]] === b[diferentes[1]] && a[diferentes[1]] === b[diferentes[0]]);
+  }
+  const menor = a.length < b.length ? a : b;
+  const maior = a.length < b.length ? b : a;
+  let i = 0;
+  while (i < menor.length && menor[i] === maior[i]) i++;
+  return menor.slice(i) === maior.slice(i + 1);
 }
 export function buscarPerguntas(
   guias: PerguntaRevisada[],
@@ -52,8 +70,11 @@ export function buscarPerguntas(
     )
     .map((g) => {
       const texto = termos(`${g.titulo} ${g.pergunta_modelo}`);
-      const pontos = [...palavras].filter((p) => texto.has(p)).length;
-      return { g, pontos };
+      const exatos = [...palavras].filter((p) => texto.has(p)).length;
+      const pontos = [...palavras].filter((p) =>
+        [...texto].some((t) => proximo(p, t)),
+      ).length;
+      return { g, pontos, exatos };
     })
     .filter(({ pontos }) =>
       relacionadas
@@ -62,7 +83,8 @@ export function buscarPerguntas(
     )
     .sort(
       (a, b) =>
-        b.pontos - a.pontos || a.g.titulo.localeCompare(b.g.titulo, "pt-BR"),
+        b.pontos - a.pontos || b.exatos - a.exatos ||
+        a.g.titulo.localeCompare(b.g.titulo, "pt-BR"),
     )
     .slice(0, relacionadas ? 3 : 100)
     .map(({ g }) => g);

@@ -30,6 +30,22 @@ const guias: PerguntaRevisada[] = [
     revisado_em: null,
   },
 ];
+test("tolera uma edição e transposição sem flexibilizar siglas, números ou filtros", () => {
+  for (const busca of ["seguranca plano", "seguranca plnao", "seguranca planox", "seguranca plao"]) {
+    // A omissão que reduz o termo a quatro letras permanece sem aproximação.
+    assert.equal(buscarPerguntas(guias, busca).length, busca === "seguranca plao" ? 0 : 1);
+  }
+  for (const busca of ["seguranca", "segurnaca", "segurancax", "seguraca", "segurxanca"]) {
+    assert.equal(buscarPerguntas(guias, busca)[0]?.id, "3");
+  }
+  assert.equal(buscarPerguntas(guias, "segxxanca").length, 0);
+  assert.equal(buscarPerguntas(guias, "cx").length, 0);
+  assert.equal(buscarPerguntas(guias, "municao2").length, 0);
+  assert.equal(buscarPerguntas(guias, "municaox", "comercio", "explosivos").length, 0);
+  const semelhante = { ...guias[2], id: "4", titulo: "A segurança", pergunta_modelo: "" };
+  const exata = { ...guias[2], id: "5", titulo: "Z segurancaX", pergunta_modelo: "" };
+  assert.equal(buscarPerguntas([semelhante, exata], "segurancax")[0]?.id, "5");
+});
 test("busca ignora ordem e acentos e reconhece renovação de CR", () => {
   assert.equal(buscarPerguntas(guias, "municoes registros")[0]?.id, "2");
   assert.equal(buscarPerguntas(guias, "renovar CR")[0]?.id, "1");
