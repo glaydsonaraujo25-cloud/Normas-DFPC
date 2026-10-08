@@ -93,6 +93,8 @@ export type Consulta = {
   data_referencia: string;
   versao: string;
   fontes_excluidas: number;
+  pergunta_interpretada?: string | null;
+  complementares?: number;
 };
 const normalizar = (t: string) =>
   t
@@ -101,9 +103,19 @@ const normalizar = (t: string) =>
     .toLowerCase();
 export function faltantes(pergunta: string, c: ContextoEmpresa): string[] {
   const q = normalizar(pergunta);
+  if (/(como verificar|procedimento)/.test(q) && /(mistura|solucao)/.test(q))
+    return [];
+  if (
+    /(como|o que|significa)/.test(q) &&
+    (/apostil/.test(q) ||
+      (/incluir|adicionar/.test(q) &&
+        /atividade/.test(q) &&
+        /registro|\bcr\b/.test(q)))
+  )
+    return [];
   if (
     c.publico !== "empresa" ||
-    !/(precis|obrig|dispens|isent|posso|pode|devo|document|como.*(registr|obter|solicit))/.test(
+    !/(precis|obrig|dispens|isent|posso|pode|devo|document|como.*(registr|obter|solicit)|\bcr\b|(?:mistura|solucao).*(?:pce|controlad))/.test(
       q,
     )
   )
@@ -111,13 +123,14 @@ export function faltantes(pergunta: string, c: ContextoEmpresa): string[] {
   const itens: string[] = [];
   if (
     c.produto === "todos" &&
-    !/(arma|munic|explosiv|quimic|pirotec|fogos|blind|colete|balistic|menos.letal|menor potencial ofensivo|nitrato|espargidor|dardos)/.test(
+    !/(arma|munic|explosiv|quimic|pirotec|fogos|blind|colete|balistic|menos.letal|menor potencial ofensivo|nitrato|espargidor|dardos|mistura|solucao)/.test(
       q,
     )
   )
     itens.push("Informe o produto ou a família de PCE envolvida.");
   if (
     c.atividade === "todos" &&
+    !/(mistura|solucao).*(pce|controlad)/.test(q) &&
     !/(fabric|comerci|vend|compr|adquir|aquis|transport|trafeg|armazen|utiliz|empreg|detona|import|export|registr|apostil|fiscaliz)/.test(
       q,
     )
@@ -134,6 +147,14 @@ export function faltantes(pergunta: string, c: ContextoEmpresa): string[] {
   )
     itens.push(
       "Descreva o produto químico, sua composição/concentração e finalidade.",
+    );
+  if (
+    /(mistura|solucao)/.test(q) &&
+    /(controlad|pce|enquadr|dispens|isent)/.test(q) &&
+    !/[0-9]|composicao:|como verificar|procedimento/.test(q)
+  )
+    itens.push(
+      "Para pesquisar o enquadramento da mistura/solução, inclua na pergunta os componentes, as concentrações e a finalidade. Informações só no campo de detalhes não participam da busca.",
     );
   return itens;
 }
@@ -341,6 +362,10 @@ export function exportarConsulta(r: RegistroConsulta) {
     `Consulta realizada: ${r.criadoEm}`,
     `Data de referência: ${r.contexto.data}`,
     `Versão: ${r.consulta.versao}`,
+    r.consulta.pergunta_interpretada
+      ? `Tema reconhecido: ${r.consulta.pergunta_interpretada}`
+      : "",
+    "A consulta usa o acervo cadastrado; a ausência de resultado não comprova dispensa de controle.",
     `Produto: ${r.contexto.produto} | Atividade: ${r.contexto.atividade}`,
     `Situação de registro informada: ${r.contexto.registro}`,
     r.contexto.detalhes ? `Detalhes: ${r.contexto.detalhes}` : "",

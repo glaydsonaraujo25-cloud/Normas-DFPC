@@ -176,7 +176,7 @@ export default function App() {
       return;
     }
     const vigencia =
-      /\b(vigente|vigência|revogad|revogou|revoga[cç][aã]o|ainda vale|situa[cç][aã]o normativa)/i.test(
+      /\b(vigente|vigência|revogad[oa]s?|revogou|revoga[cç][aã]o|ainda vale|situa[cç][aã]o normativa)/i.test(
         pergunta,
       );
     const faltam = vigencia ? [] : faltantes(pergunta, contexto);
@@ -573,6 +573,21 @@ export default function App() {
                     Consultas salvas preservam os fundamentos daquela consulta;
                     use “Consultar novamente” para verificar atualizações.
                   </p>
+                  {consulta.consulta.pergunta_interpretada && (
+                    <p className="answer-block">
+                      Tema reconhecido:{" "}
+                      <b>{consulta.consulta.pergunta_interpretada}</b> A
+                      orientação aborda a regra geral deste tema; confira abaixo
+                      sua aplicação e eventuais condições.
+                    </p>
+                  )}
+                  {!!consulta.consulta.complementares && (
+                    <p className="muted">
+                      Incluídos {consulta.consulta.complementares} dispositivos
+                      complementares do mesmo artigo para conferir condições e
+                      exceções.
+                    </p>
+                  )}
                   {!fontes.length ? (
                     <div className="answer-block warning">
                       <h3>Fundamento insuficiente para responder</h3>
@@ -754,6 +769,30 @@ export default function App() {
               </label>
             </div>
             {avisoBase && <p className="warning">{avisoBase}</p>}
+            <div className="source-card">
+              <h2>Conferir publicações oficiais</h2>
+              <p>
+                A consulta usa o acervo cadastrado. Consulte a DFPC e os
+                documentos oficiais para conferir publicações e alterações ainda
+                não incorporadas.
+              </p>
+              <div className="toolbar">
+                <a
+                  href="https://www.dfpc.eb.mil.br/index.php/informacoes/legislacao"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Legislação da DFPC
+                </a>
+                <a
+                  href="https://www.gov.br/siscomex/pt-br/servicos/aprendendo-a-exportar/legislacao/dfpc/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Referências do Exército no Siscomex
+                </a>
+              </div>
+            </div>
             <div className="base-stats">
               <div>
                 <b>{normas.length}</b>

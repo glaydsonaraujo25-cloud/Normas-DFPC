@@ -23,3 +23,12 @@ A interface publicada foi conferida em navegador: consulta com orientação/cita
 - Build aprovado; painel de revisão separado em arquivo carregado sob demanda.
 - Cinco perguntas publicadas acessíveis ao público com as permissões existentes; nenhuma ampliação de acesso ou migração nesta atualização.
 - Orientações só são exibidas se todas as citações permanecem entre os dispositivos válidos retornados.
+
+## Terceira atualização — respostas e fontes oficiais
+
+- Dez testes unitários e build aprovados.
+- Oito novos casos SQL: variações linguísticas, perguntas específicas sem substituição por resposta geral, fontes válidas e ausência de dispositivos duplicados. Todos aprovados.
+- Oito casos antigos de regressão continuam aprovados.
+- Consulta no papel público `anon` confirmou retorno dos complementos, incluindo o § 1º da Portaria 291/2026.
+- Sem novos avisos de segurança Supabase.
+- Limitações e rastreabilidade das leituras oficiais registradas em `FONTES_OFICIAIS.md`.

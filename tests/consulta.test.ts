@@ -125,6 +125,32 @@ test("reconhece a família de menor potencial ofensivo", () => {
   );
 });
 
+test("distingue perguntas de procedimento de enquadramento de caso específico", () => {
+  assert.deepEqual(
+    faltantes("Como incluir nova atividade no CR?", contextoInicial()),
+    [],
+  );
+  assert.deepEqual(
+    faltantes(
+      "Como verificar se uma mistura ou solução química é PCE?",
+      contextoInicial(),
+    ),
+    [],
+  );
+  assert.ok(
+    faltantes("Minha mistura é PCE?", contextoInicial()).some((p) =>
+      p.includes("componentes"),
+    ),
+  );
+  assert.deepEqual(
+    faltantes(
+      "Preciso de CR para vender produtos químicos?",
+      contextoInicial(),
+    ),
+    [],
+  );
+});
+
 const registro = (id: string, favorito = false): RegistroConsulta => ({
   id,
   favorito,

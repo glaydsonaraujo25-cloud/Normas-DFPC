@@ -26,6 +26,12 @@ export function FonteNormativa({
         {fonte.dispositivo}
         {fonte.pagina ? ` · página ${fonte.pagina}` : ""}
       </p>
+      {fonte.tipo_conteudo === "dispositivo_complementar" && (
+        <p className="muted">
+          Complemento do mesmo artigo: confira as condições junto da regra
+          principal.
+        </p>
+      )}
       <p>{fonte.conteudo}</p>
       <details>
         <summary>Ver texto cadastrado e origem</summary>
