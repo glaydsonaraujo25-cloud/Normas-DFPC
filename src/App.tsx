@@ -42,6 +42,9 @@ import type {
 import type { Norma } from "./types";
 import { FonteNormativa, LinhaNormativa } from "./components/FonteNormativa";
 import { PerguntasRevisadas } from "./components/PerguntasRevisadas";
+import { PUBLICOS, identificarPublico, ehHistoricoNormativo } from "./lib/publicos";
+import { perguntasExemplo } from "./data/perguntas-exemplo";
+import { HistoricoNormas } from "./components/HistoricoNormas";
 const Revisao = lazy(() =>
   import("./components/Revisao").then((m) => ({ default: m.Revisao })),
 );
@@ -183,17 +186,15 @@ export default function App() {
       return;
     }
     const referenciaExplicita = temReferenciaNormativa(pergunta);
-    const vigencia =
-      !referenciaExplicita &&
-      /\b(vigente|vigência|revogad[oa]s?|revogou|revoga[cç][aã]o|ainda vale|situa[cç][aã]o normativa)/i.test(
-        pergunta,
-      );
+    const vigencia = !referenciaExplicita && ehHistoricoNormativo(pergunta);
+    const publico = contexto.publico === "automatico" ? identificarPublico(pergunta) : contexto.publico;
+    const contextoConsulta = { ...contexto, publico };
     const faltam =
       vigencia || referenciaExplicita
         ? []
         : [
-            ...conflitosContexto(pergunta, contexto),
-            ...faltantes(pergunta, contexto),
+            ...conflitosContexto(pergunta, contextoConsulta),
+            ...faltantes(pergunta, contextoConsulta),
           ];
     if (faltam.length) {
       setPendencias(faltam);
@@ -202,21 +203,11 @@ export default function App() {
     }
     setCarregando(true);
     try {
-      if (vigencia) {
-        const { data, error } = await supabase.rpc("consultar_status_norma", {
-          consulta: pergunta.trim(),
-          limite: 6,
-        });
-        if (rid !== requestId.current) return;
-        if (error) throw error;
-        setStatus(data || []);
-        return;
-      }
-      const { data, error } = await supabase.rpc("consultar_empresa_pce", {
+      const { data, error } = await supabase.rpc("consultar_publico_pce", {
         p_pergunta: pergunta.trim(),
         p_produto: contexto.produto,
         p_atividade: contexto.atividade,
-        p_publico: contexto.publico,
+        p_publico: publico,
         p_data: contexto.data,
         p_limite: 10,
       });
@@ -247,7 +238,7 @@ export default function App() {
       const registro: RegistroConsulta = {
         id: crypto.randomUUID(),
         pergunta: pergunta.trim(),
-        contexto: { ...contexto },
+        contexto: contextoConsulta,
         consulta: resposta,
         criadoEm: new Date().toISOString(),
         favorito: false,
@@ -273,6 +264,7 @@ export default function App() {
     pergunta_modelo: string;
     produto: string;
     atividade: string;
+    publico?: ContextoEmpresa["publico"];
   }) {
     invalidar();
     setPergunta(g.pergunta_modelo);
@@ -280,6 +272,7 @@ export default function App() {
       ...contextoInicial(),
       produto: g.produto,
       atividade: g.atividade,
+      publico: g.publico ?? "automatico",
     });
     inputRef.current?.focus();
     inputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -348,7 +341,7 @@ export default function App() {
           <>
             <section className="hero">
               <div className="eyebrow">
-                <Building2 size={17} /> CONSULTA EMPRESARIAL PCE
+                <Building2 size={17} /> CONSULTA NORMATIVA PCE
               </div>
               <h1>
                 Entenda a norma.
@@ -357,7 +350,7 @@ export default function App() {
               </h1>
               <p>
                 Consulte requisitos, procedimentos e vigência com fundamentos
-                rastreáveis para a atividade da sua empresa.
+                rastreáveis para empresas, CAC, militares e policiais.
               </p>
               <form
                 className="consult-form"
@@ -378,8 +371,7 @@ export default function App() {
                         )
                       }
                     >
-                      <option value="empresa">Empresas</option>
-                      <option value="todos">Todos os públicos</option>
+                      {PUBLICOS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
                     </select>
                   </label>
                   <label>
@@ -426,7 +418,7 @@ export default function App() {
                       setPergunta(e.target.value);
                       invalidar();
                     }}
-                    placeholder="Descreva a dúvida e a situação da empresa…"
+                    placeholder="Descreva a dúvida, o público e a situação…"
                     maxLength={2000}
                     rows={3}
                   />
@@ -500,6 +492,24 @@ export default function App() {
                 </div>
               )}
             </section>
+            {!consulta && !status && !carregando && (
+              <section className="library">
+                <details>
+                  <summary>Explorar 46 perguntas por tema</summary>
+                  {perguntasExemplo.map(g => (
+                    <details key={g.grupo}>
+                      <summary>{g.grupo} · {g.perguntas.length} perguntas</summary>
+                      <div className="examples">
+                        {g.perguntas.map(q => <button key={q} onClick={() => {
+                          invalidar(); setPergunta(q); setContexto(contextoInicial());
+                          inputRef.current?.focus();
+                        }}>{q}</button>)}
+                      </div>
+                    </details>
+                  ))}
+                </details>
+              </section>
+            )}
             <div className="results" aria-live="polite" aria-busy={carregando}>
               {carregando && (
                 <div className="answer">
@@ -624,7 +634,8 @@ export default function App() {
                     Consultas salvas preservam os fundamentos daquela consulta;
                     use “Consultar novamente” para verificar atualizações.
                   </p>
-                  <CoberturaResposta consulta={consulta.consulta} />
+                  {!consulta.consulta.metodologia && consulta.consulta.historico_normativo === undefined &&
+                    <CoberturaResposta consulta={consulta.consulta} />}
                   {consulta.consulta.pergunta_interpretada && (
                     <p className="answer-block">
                       Tema reconhecido:{" "}
@@ -646,7 +657,17 @@ export default function App() {
                       {consulta.consulta.aviso_referencia}
                     </p>
                   )}
-                  {!fontes.length ? (
+                  {consulta.consulta.historico_normativo !== undefined ? (
+                    <HistoricoNormas normas={consulta.consulta.historico_normativo} />
+                  ) : consulta.consulta.metodologia ? (
+                    <div className="answer-block primary-block">
+                      <h3>{consulta.consulta.metodologia.titulo}</h3>
+                      <p>{consulta.consulta.metodologia.texto}</p>
+                      <p>{consulta.consulta.metodologia.referencia}</p>
+                      <a href={urlSegura(consulta.consulta.metodologia.fonte_oficial)!}
+                        target="_blank" rel="noopener noreferrer">Conferir fonte oficial</a>
+                    </div>
+                  ) : !fontes.length ? (
                     <div className="answer-block warning">
                       <h3>Fundamento insuficiente para responder</h3>
                       <p>
@@ -790,6 +811,8 @@ export default function App() {
             {!status &&
               (!consulta ||
                 (!consulta.consulta.orientacoes.length &&
+                  !consulta.consulta.metodologia &&
+                  consulta.consulta.historico_normativo === undefined &&
                   !consulta.consulta.referencia_exata)) && (
                 <PerguntasRevisadas
                   key={consulta?.id || "catalogo"}

@@ -1,0 +1,36 @@
+export const perguntasExemplo = [
+  { grupo: "Conceitos e empresas", perguntas: [
+    "O que é PCE?", "O que é o SICOEX?", "Como adquirir explosivos pelo SICOEX?",
+    "Como funciona o tráfego de explosivos?", "Quais marcações uma arma importada precisa ter?",
+    "Quando uma arma pode ser remarcada?", "Como funciona a importação de PCE?",
+    "O que são LPCO e DUIMP na importação de PCE?",
+    "Empresa de segurança privada pode adquirir munição calibre 12?",
+    "Quais PCE de menor potencial ofensivo podem ser adquiridos por empresa de segurança privada?",
+    "Qual o nível de risco de atividade econômica com PCE?",
+    "Como funciona a classificação por CNAE para atividade com PCE?", "O que é o SisFPC?",
+    "Quem fiscaliza produtos controlados pelo Exército?", "O que é TFPC e quem precisa pagar?",
+    "Quem é isento da TFPC?", "Quais regras existem para colete balístico?", "Como funciona o SICOVAB?",
+  ] },
+  { grupo: "CAC", perguntas: [
+    "Quantas armas um atirador nível 3 pode ter?", "Quais os limites de munição para CAC?",
+    "Como funciona a Guia de Tráfego para CAC?", "Atirador pode comprar equipamento de recarga?",
+    "Quantos equipamentos de recarga um atirador pode ter?",
+    "CAC pode portar arma carregada fora do trajeto autorizado?",
+  ] },
+  { grupo: "Militares, policiais e transferências", perguntas: [
+    "Militar do Exército pode portar arma de fogo?", "Soldado do Exército pode ter porte de arma?",
+    "Militar sem porte pode transportar arma?", "Policial militar pode adquirir arma de uso restrito?",
+    "Quais documentos um policial militar precisa para adquirir arma?",
+    "Como transferir uma arma do SINARM para o SIGMA?", "Como transferir uma arma do SIGMA para o SINARM?",
+    "Soldado temporário tem porte automático?", "Qual a diferença entre porte e transporte de arma?",
+  ] },
+  { grupo: "Vigência e alterações", perguntas: [
+    "A Portaria 167/2024 está vigente?", "A Portaria 166/2023 foi alterada?",
+    "O que a Portaria 260/2025 alterou?", "O que a Portaria 225/2024 alterou?",
+    "O Decreto 9.847/2019 ainda está vigente?", "Quais artigos do Decreto 9.847/2019 foram revogados?",
+    "O que mudou na Portaria 167/2024?", "Qual é a redação atual do art. 2º da Portaria 167/2024?",
+    "A Portaria 56/2017 foi alterada por quais normas?", "O que mudou na Portaria Conjunta 2/2023?",
+    "Uma norma revogada ainda pode ser usada como fundamento?",
+    "Se uma portaria foi alterada, qual redação vale hoje?", "A ITA 25/2022 ainda pode ser usada para importação?",
+  ] },
+] as const;

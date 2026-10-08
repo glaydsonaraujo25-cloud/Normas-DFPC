@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { ATIVIDADES, PRODUTOS } from "../lib/consulta";
 import { buscarPerguntas } from "../lib/perguntas";
+import { PUBLICOS } from "../lib/publicos";
 import type { PerguntaRevisada } from "../lib/perguntas";
 
 export function PerguntasRevisadas({
@@ -23,7 +24,7 @@ export function PerguntasRevisadas({
     }
     supabase
       .from("orientacoes_empresariais")
-      .select("id,titulo,pergunta_modelo,produto,atividade,revisado_em")
+      .select("id,titulo,pergunta_modelo,produto,atividade,revisado_em,publico")
       .eq("estado", "publicada")
       .order("titulo")
       .limit(100)
@@ -100,6 +101,7 @@ export function PerguntasRevisadas({
                 <h3>{g.titulo}</h3>
                 <p>{g.pergunta_modelo}</p>
                 <p className="muted">
+                  {rotulo(PUBLICOS, g.publico || "empresa")} · {" "}
                   {g.produto !== "todos"
                     ? rotulo(PRODUTOS, g.produto)
                     : "Produtos conforme a pergunta"}{" "}

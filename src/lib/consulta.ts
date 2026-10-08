@@ -1,5 +1,7 @@
+import type { Publico } from "./publicos.ts";
+import { PUBLICOS, identificarPublico } from "./publicos.ts";
 export type ContextoEmpresa = {
-  publico: "empresa" | "todos";
+  publico: Publico;
   produto: string;
   atividade: string;
   registro: string;
@@ -14,7 +16,7 @@ export const hoje = () =>
     day: "2-digit",
   }).format(new Date());
 export const contextoInicial = (): ContextoEmpresa => ({
-  publico: "empresa",
+  publico: "automatico",
   produto: "todos",
   atividade: "todos",
   registro: "nao_informado",
@@ -89,6 +91,7 @@ export type SecaoOrientacao = {
   }>;
 };
 export type Orientacao = {
+  publico?: Publico;
   id: string;
   titulo: string;
   produto: string;
@@ -113,6 +116,16 @@ export type Consulta = {
   referencia_exata?: boolean;
   aviso_referencia?: string;
   esclarecimentos?: Esclarecimento[];
+  historico_normativo?: HistoricoNormativo[];
+  metodologia?: { titulo: string; texto: string; fonte_oficial: string; referencia: string };
+};
+export type HistoricoNormativo = {
+  norma_id: string; titulo: string; status: string; observacao: string | null;
+  ultima_verificacao: string | null; fonte_oficial: string | null;
+  eventos: Array<{ norma_base: string; norma_alteradora: string; dispositivo: string;
+    tipo: string; data: string | null; resumo: string | null; observacoes: string | null }>;
+  mapa: Array<{ dispositivo: string; status: string; data: string | null;
+    responsavel: string | null; observacoes: string | null }>;
 };
 const normalizar = (t: string) =>
   t
@@ -148,7 +161,7 @@ export function faltantes(pergunta: string, c: ContextoEmpresa): string[] {
   )
     return [];
   if (
-    c.publico !== "empresa" ||
+    (c.publico === "automatico" ? !["cac", "militar", "policial"].includes(identificarPublico(pergunta)) : c.publico === "empresa") === false ||
     !/(precis|obrig|dispens|isent|posso|pode|devo|document|como.*(registr|obter|solicit)|\bcr\b|(?:mistura|solucao).*(?:pce|controlad))/.test(
       q,
     )
@@ -345,6 +358,20 @@ function validarFonte(v: unknown): v is Fonte {
 export function validarConsulta(v: unknown): v is Consulta {
   if (!objeto(v)) return false;
   return (
+    (v.metodologia === undefined || (objeto(v.metodologia) &&
+      ["titulo","texto","referencia","fonte_oficial"].every(k => typeof v.metodologia === "object" &&
+        typeof (v.metodologia as Record<string,unknown>)[k] === "string") &&
+      !!urlSegura(v.metodologia.fonte_oficial as string))) &&
+    (v.historico_normativo === undefined || (Array.isArray(v.historico_normativo) &&
+      v.historico_normativo.every(n => objeto(n) &&
+        ["norma_id","titulo","status"].every(k => typeof n[k] === "string") &&
+        ["observacao","ultima_verificacao","fonte_oficial"].every(k => textoOuNulo(n[k])) &&
+        Array.isArray(n.eventos) && n.eventos.every(e => objeto(e) &&
+          ["norma_base","norma_alteradora","dispositivo","tipo"].every(k => typeof e[k] === "string") &&
+          ["data","resumo","observacoes"].every(k => textoOuNulo(e[k]))) &&
+        Array.isArray(n.mapa) && n.mapa.every(m => objeto(m) &&
+          ["dispositivo","status"].every(k => typeof m[k] === "string") &&
+          ["data","responsavel","observacoes"].every(k => textoOuNulo(m[k])))))) &&
     (v.pergunta_interpretada === undefined ||
       v.pergunta_interpretada === null ||
       typeof v.pergunta_interpretada === "string") &&
@@ -456,7 +483,7 @@ export function lerHistorico(): RegistroConsulta[] {
             (k) =>
               typeof (x.contexto as Record<string, unknown>)[k] === "string",
           ) &&
-          ["empresa", "todos"].includes(String(x.contexto.publico)) &&
+          PUBLICOS.some(([p]) => p === (x.contexto as Record<string, unknown>).publico) &&
           validarConsulta(x.consulta),
       ),
     );
@@ -474,7 +501,11 @@ export function salvarHistorico(itens: RegistroConsulta[]) {
 }
 export function coberturaConsulta(consulta: Consulta) {
   const fontes = consulta.fontes;
-  const titulo = !fontes.length
+  const titulo = consulta.historico_normativo !== undefined
+    ? "Histórico e situação normativa cadastrada"
+    : consulta.metodologia
+      ? "Critério de análise normativa"
+      : !fontes.length
     ? "Fundamento insuficiente"
     : consulta.orientacoes.length
       ? "Orientação prática revisada"
@@ -524,6 +555,19 @@ export function exportarConsulta(r: RegistroConsulta) {
     `Situação de registro informada: ${r.contexto.registro}`,
     r.contexto.detalhes ? `Detalhes: ${r.contexto.detalhes}` : "",
     "",
+    ...(r.consulta.metodologia ? [
+      "## " + r.consulta.metodologia.titulo, r.consulta.metodologia.texto,
+      r.consulta.metodologia.referencia, r.consulta.metodologia.fonte_oficial, "",
+    ] : []),
+    ...(r.consulta.historico_normativo || []).flatMap(n => [
+      "## " + n.titulo, "Situação cadastrada: " + n.status,
+      n.observacao || "", urlSegura(n.fonte_oficial) || "",
+      ...n.eventos.map(e => e.norma_alteradora + " → " + e.norma_base + " — " +
+        e.dispositivo + " (" + (e.data || "data não informada") + ") — " +
+        (e.resumo || "") + " " + (e.observacoes || "")),
+      ...n.mapa.map(m => m.dispositivo + ": " + m.status + " — " +
+        (m.responsavel || "") + " " + (m.observacoes || "")), "",
+    ]),
     ...r.consulta.orientacoes.flatMap((o) => [
       `## ${o.titulo}`,
       `Revisão cadastrada: ${o.revisado_em || "não informada"}`,

@@ -1,7 +1,7 @@
 import type { Orientacao } from "./consulta.ts";
 export type PerguntaRevisada = Pick<
   Orientacao,
-  "id" | "titulo" | "pergunta_modelo" | "produto" | "atividade" | "revisado_em"
+  "id" | "titulo" | "pergunta_modelo" | "produto" | "atividade" | "revisado_em" | "publico"
 >;
 const normalizar = (s: string) =>
   s

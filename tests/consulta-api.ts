@@ -4,6 +4,7 @@ import {
   fonteAtual,
   faltantes,
   contextoInicial,
+  hoje,
 } from "../src/lib/consulta.ts";
 const url = process.env.VITE_SUPABASE_URL;
 const key = process.env.VITE_SUPABASE_ANON_KEY;
@@ -14,32 +15,33 @@ const headers = {
   "Content-Type": "application/json",
 };
 const response = await fetch(
-  `${url}/rest/v1/orientacoes_empresariais?estado=eq.publicada&select=pergunta_modelo,produto,atividade`,
+  `${url}/rest/v1/orientacoes_empresariais?estado=eq.publicada&select=pergunta_modelo,produto,atividade,publico`,
   { headers },
 );
 assert.equal(response.status, 200);
 const guias = await response.json();
-assert.equal(guias.length, 22);
+assert.ok(guias.length >= 33);
 for (const g of guias) {
   for (const usarFiltros of [true, false]) {
     assert.deepEqual(
       faltantes(g.pergunta_modelo, {
         ...contextoInicial(),
+        publico: g.publico,
         produto: g.produto,
         atividade: g.atividade,
       }),
       [],
       g.pergunta_modelo,
     );
-    const r = await fetch(`${url}/rest/v1/rpc/consultar_empresa_pce`, {
+    const r = await fetch(`${url}/rest/v1/rpc/consultar_publico_pce`, {
       method: "POST",
       headers,
       body: JSON.stringify({
         p_pergunta: g.pergunta_modelo,
         p_produto: usarFiltros ? g.produto : "todos",
         p_atividade: usarFiltros ? g.atividade : "todos",
-        p_publico: "empresa",
-        p_data: "2026-10-08",
+        p_publico: usarFiltros ? g.publico : "automatico",
+        p_data: hoje(),
         p_limite: 12,
       }),
     });
@@ -47,9 +49,9 @@ for (const g of guias) {
     const data = await r.json();
     assert.ok(validarConsulta(data), g.pergunta_modelo);
     assert.equal(data.orientacoes.length, 1, g.pergunta_modelo);
-    assert.ok(data.fontes.every((f) => fonteAtual(f, "2026-10-08")));
+    assert.ok(data.fontes.every((f) => fonteAtual(f, hoje())));
   }
 }
 console.log(
-  "44 cenários públicos aprovados: 22 perguntas com filtros e com identificação automática.",
+  `${guias.length * 2} cenários públicos aprovados com filtros e identificação automática.`,
 );
