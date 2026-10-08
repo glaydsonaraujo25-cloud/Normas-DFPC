@@ -127,9 +127,17 @@ begin
  end if;
  busca:=coalesce(modelo, regexp_replace(regexp_replace(regexp_replace(p_pergunta,'\m[Cc][Rr]\M','registro','g'),'\m[vV]ender\M','comercializar','g'),'\m[cC]omprar\M','adquirir','g'));
  resultado:=public.consultar_empresa_pce_v2(busca,p_produto,p_atividade,p_publico,p_data,p_limite);
- -- Parágrafos do mesmo artigo/documento e da mesma seção normativa.
+ -- Parágrafos do mesmo artigo e seção, incluindo redações consolidadas aplicáveis.
  -- Nunca associar art. 2º do decreto ao art. 2º de seu Anexo I.
- -- Os fundamentos citados recebem prioridade, preservando todos os achados.
+ -- Respostas revisadas exibem seus fundamentos; pesquisa documental mantém os achados.
+ if jsonb_array_length(resultado->'orientacoes')>0 then
+  select jsonb_set(resultado,'{fontes}',coalesce(jsonb_agg(f.value order by f.ordinality),'[]'::jsonb))
+  into resultado from jsonb_array_elements(resultado->'fontes') with ordinality f
+  where exists(select 1 from jsonb_array_elements(resultado->'orientacoes') o,
+   jsonb_array_elements(o->'secoes') sec,jsonb_array_elements_text(sec->'dispositivo_ids') ref
+   where ref=f.value->>'dispositivo_id');
+ end if;
+ -- Os fundamentos citados recebem prioridade.
  select jsonb_set(resultado,'{fontes}',coalesce(jsonb_agg(f.value order by
  exists(select 1 from jsonb_array_elements(resultado->'orientacoes') o,
  jsonb_array_elements(o->'secoes') sec,jsonb_array_elements_text(sec->'dispositivo_ids') ref
@@ -141,7 +149,6 @@ begin
   select distinct d.id,d.norma_id,d.documento_id,d.referencia,d.texto_literal,d.pagina,d.status,d.conferido,d.vigencia_inicio,d.vigencia_fim,
    n.titulo,n.status ns,n.ultima_verificacao,n.fonte_oficial,doc.nome_arquivo,doc.sha256
   from sementes s join dispositivos d on d.norma_id=s.norma_id and d.artigo=s.artigo
-   and d.documento_id is not distinct from s.documento_id
    and split_part(lower(d.referencia),'art.',1)=split_part(lower(s.referencia),'art.',1)
   join normas n on n.id=d.norma_id left join documentos doc on doc.id=d.documento_id
   where not exists(select 1 from jsonb_array_elements(resultado->'fontes') f where f->>'dispositivo_id'=d.id::text)

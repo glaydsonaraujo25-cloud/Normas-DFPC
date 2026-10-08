@@ -16,7 +16,7 @@ A presença em um índice não comprova vigência integral. Não se inferem disp
 
 Reconhece variantes linguísticas de cinco temas já revisados (definição, registro para comércio de químicos, apostilamento, requisitos gerais de importação e aquisição geral para segurança privada). A pergunta original permanece visível e a interpretação é informada. Perguntas com prazos, custos, dispensas, quantidades, normas específicas e condições particulares conservam a busca original.
 
-A busca recupera também dispositivos conferidos do mesmo artigo, documento e seção das três fontes principais, limitada a 12 complementos. Não associa artigos de anexos ao corpo principal. A busca não afirma ter recuperado todos os dispositivos citados ou exceções do ordenamento.
+Quando há orientação revisada, suas fontes são os fundamentos citados, sem misturar achados textuais de outros assuntos. A busca recupera também dispositivos conferidos do mesmo artigo e seção da norma, incluindo redações consolidadas aplicáveis das três fontes principais, limitada a 12 complementos. Não associa artigos de anexos ao corpo principal. A busca não afirma ter recuperado todos os dispositivos citados ou exceções do ordenamento.
 
 A nova orientação sobre misturas explica a necessidade de Parecer Técnico da DFPC prevista no art. 3º; não classifica automaticamente o produto.
 
