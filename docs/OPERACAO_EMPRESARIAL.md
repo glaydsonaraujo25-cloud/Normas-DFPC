@@ -65,3 +65,10 @@ Quando a seção não está identificada e pode haver numeração repetida, a in
 São exibidas somente redações individuais conferidas e aplicáveis na data da consulta. Uma referência cadastrada como faixa de artigos não é apresentada como transcrição isolada de um deles. Incisos, parágrafos e alíneas exigem correspondência individual nos campos do dispositivo. A consulta de um artigo não constitui conclusão sobre a autorização de uma empresa. Os filtros de produto/atividade são usados nas consultas temáticas; uma referência expressamente solicitada pesquisa o dispositivo indicado.
 
 Lacunas de transcrição, seção ou identificação não comprovam revogação nem dispensa. O status mantém a conferência existente do corpus; não há nova auditoria integral nesta atualização.
+
+
+### Alcance e leitura das respostas
+
+Cada resultado distingue orientação prática revisada, referência normativa localizada, pesquisa documental e fundamento insuficiente. O painel informa quantas fontes têm link oficial, datas de verificação ausentes e fundamentos citados por orientações que não constam no resultado. Esses indicadores descrevem o cadastro e não medem confiança nem garantem atualização integral da legislação. A exportação Markdown preserva essas informações e a data de revisão das orientações.
+
+Os blocos de requisitos, condições e prazos são índices por palavras presentes nos textos. Não constituem conclusões adicionais: apontam para o texto completo nos fundamentos, evitando repetir o mesmo dispositivo em vários blocos.

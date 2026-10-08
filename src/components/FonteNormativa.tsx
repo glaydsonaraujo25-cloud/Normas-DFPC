@@ -34,8 +34,14 @@ export function FonteNormativa({
       )}
       <p>{fonte.conteudo}</p>
       <details>
-        <summary>Ver texto cadastrado e origem</summary>
-        <blockquote>{fonte.texto_literal}</blockquote>
+        <summary>Ver origem e verificação</summary>
+        {fonte.texto_literal &&
+          fonte.texto_literal.trim() !== fonte.conteudo.trim() && (
+            <>
+              <p>Texto vinculado ao dispositivo:</p>
+              <blockquote>{fonte.texto_literal}</blockquote>
+            </>
+          )}
         <dl>
           <dt>Documento</dt>
           <dd>{fonte.nome_arquivo || "Documento de origem não vinculado"}</dd>

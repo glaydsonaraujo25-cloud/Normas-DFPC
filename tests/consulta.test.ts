@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  coberturaConsulta,
   contextoInicial,
   faltantes,
   fonteAtual,
@@ -250,5 +251,58 @@ test("rejeita resposta ou histórico com conteúdo interno corrompido", () => {
   assert.deepEqual(
     lerHistorico().map((r) => r.id),
     ["valido"],
+  );
+});
+
+test("distingue cobertura e denuncia referências ausentes sem usar relevância como confiança", () => {
+  const consulta = {
+    fontes: [],
+    orientacoes: [],
+    data_referencia: "2026-10-08",
+    versao: "v4",
+    fontes_excluidas: 0,
+  };
+  assert.equal(coberturaConsulta(consulta).titulo, "Fundamento insuficiente");
+  const documental = {
+    ...consulta,
+    fontes: [
+      {
+        ...fonte,
+        fonte_oficial: "javascript:alert(1)",
+        ultima_verificacao: null,
+        relevancia: 100,
+      },
+    ],
+  };
+  assert.equal(
+    coberturaConsulta(documental).titulo,
+    "Pesquisa documental, sem orientação revisada",
+  );
+  assert.equal(coberturaConsulta(documental).semLink, 1);
+  assert.equal(coberturaConsulta(documental).semData, 1);
+  assert.equal(
+    coberturaConsulta({ ...documental, referencia_exata: true }).titulo,
+    "Referência normativa localizada",
+  );
+  const orientacao = {
+    id: "o",
+    titulo: "Tema",
+    produto: "todos",
+    atividade: "todas",
+    pergunta_modelo: "Pergunta",
+    estado: "publicada" as const,
+    revisado_em: null,
+    secoes: [
+      {
+        titulo: "Regra",
+        texto: "Texto",
+        dispositivo_ids: ["id", "ausente", "ausente"],
+      },
+    ],
+  };
+  assert.equal(
+    coberturaConsulta({ ...documental, orientacoes: [orientacao] })
+      .fundamentosAusentes,
+    1,
   );
 });

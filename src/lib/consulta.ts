@@ -379,7 +379,28 @@ export function salvarHistorico(itens: RegistroConsulta[]) {
     return false;
   }
 }
+export function coberturaConsulta(consulta: Consulta) {
+  const fontes = consulta.fontes;
+  const titulo = !fontes.length
+    ? "Fundamento insuficiente"
+    : consulta.orientacoes.length
+      ? "Orientação prática revisada"
+      : consulta.referencia_exata
+        ? "Referência normativa localizada"
+        : "Pesquisa documental, sem orientação revisada";
+  const semLink = fontes.filter((f) => !urlSegura(f.fonte_oficial)).length;
+  const semData = fontes.filter((f) => !f.ultima_verificacao).length;
+  const ids = new Set(fontes.map((f) => f.dispositivo_id).filter(Boolean));
+  const pendentes = new Set(
+    consulta.orientacoes.flatMap((o) =>
+      o.secoes.flatMap((s) => s.dispositivo_ids.filter((id) => !ids.has(id))),
+    ),
+  );
+  return { titulo, semLink, semData, fundamentosAusentes: pendentes.size };
+}
+
 export function exportarConsulta(r: RegistroConsulta) {
+  const cobertura = coberturaConsulta(r.consulta);
   const linhas = [
     "# Consulta Normas DFPC",
     "",
@@ -388,6 +409,11 @@ export function exportarConsulta(r: RegistroConsulta) {
     `Consulta realizada: ${r.criadoEm}`,
     `Data de referência: ${r.contexto.data}`,
     `Versão: ${r.consulta.versao}`,
+    `Alcance: ${cobertura.titulo}`,
+    `Links oficiais pendentes: ${cobertura.semLink}`,
+    `Fontes sem data de verificação: ${cobertura.semData}`,
+    `Fundamentos citados não presentes na consulta: ${cobertura.fundamentosAusentes}`,
+    "O alcance descreve o conteúdo disponível; não representa uma pontuação de confiança nem uma confirmação integral da legislação atual.",
     r.consulta.aviso_referencia || "",
     r.consulta.pergunta_interpretada
       ? `Tema reconhecido: ${r.consulta.pergunta_interpretada}`
@@ -399,6 +425,7 @@ export function exportarConsulta(r: RegistroConsulta) {
     "",
     ...r.consulta.orientacoes.flatMap((o) => [
       `## ${o.titulo}`,
+      `Revisão cadastrada: ${o.revisado_em || "não informada"}`,
       ...o.secoes.flatMap((s) => [
         `### ${s.titulo}`,
         s.texto,
@@ -417,8 +444,12 @@ export function exportarConsulta(r: RegistroConsulta) {
       "",
       f.conteudo,
       "",
-      "Texto cadastrado:",
-      f.texto_literal || "Sem vínculo literal exato.",
+      ...(f.texto_literal?.trim() !== f.conteudo.trim()
+        ? [
+            "Texto vinculado ao dispositivo:",
+            f.texto_literal || "Sem vínculo literal exato.",
+          ]
+        : []),
       "",
     ]),
   ];

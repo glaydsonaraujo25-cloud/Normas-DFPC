@@ -21,6 +21,7 @@ import {
   faltantes,
   fonteAtual,
   secoesExtraidas,
+  coberturaConsulta,
   lerHistorico,
   salvarHistorico,
   exportarConsulta,
@@ -602,6 +603,7 @@ export default function App() {
                     Consultas salvas preservam os fundamentos daquela consulta;
                     use “Consultar novamente” para verificar atualizações.
                   </p>
+                  <CoberturaResposta consulta={consulta.consulta} />
                   {consulta.consulta.pergunta_interpretada && (
                     <p className="answer-block">
                       Tema reconhecido:{" "}
@@ -689,11 +691,15 @@ export default function App() {
                           .map((g) => (
                             <div className="answer-block" key={g.titulo}>
                               <h3>{g.titulo}</h3>
+                              <p className="muted">
+                                Índice por palavras do texto cadastrado. Leia o
+                                trecho completo para conferir sua aplicação.
+                              </p>
                               {g.itens.map((f) => {
                                 const i = fontes.indexOf(f) + 1;
                                 return (
                                   <p key={f.trecho_id}>
-                                    {f.conteudo}{" "}
+                                    {f.titulo} · {f.dispositivo}{" "}
                                     <a
                                       href={`#fonte-${i}`}
                                       aria-label={`Ver fundamento ${i}`}
@@ -1073,5 +1079,41 @@ export default function App() {
         serviços externos de geração de respostas
       </footer>
     </>
+  );
+}
+
+function CoberturaResposta({ consulta }: { consulta: Consulta }) {
+  const cobertura = coberturaConsulta(consulta);
+  return (
+    <aside
+      className="answer-block coverage-block"
+      aria-label="Alcance da resposta"
+    >
+      <h3>{cobertura.titulo}</h3>
+      <p>
+        A resposta usa o acervo cadastrado. A consulta não verifica
+        automaticamente novas publicações na DFPC.
+      </p>
+      {!!consulta.fontes.length && (
+        <p>
+          Fontes com link oficial: {consulta.fontes.length - cobertura.semLink}{" "}
+          de {consulta.fontes.length}.
+          {cobertura.semLink > 0 && " Há links oficiais pendentes de cadastro."}
+          {cobertura.semData > 0 &&
+            ` ${cobertura.semData} fonte(s) sem data de verificação informada.`}
+        </p>
+      )}
+      {cobertura.fundamentosAusentes > 0 && (
+        <p role="status">
+          A orientação cita {cobertura.fundamentosAusentes} dispositivo(s) que
+          não aparecem nos fundamentos desta consulta. Confira essas referências
+          antes de aplicar a orientação.
+        </p>
+      )}
+      <p className="muted">
+        A data de verificação de cada dispositivo está disponível em “Ver origem
+        e verificação”.
+      </p>
+    </aside>
   );
 }
