@@ -31,7 +31,7 @@ export function statusSlug(status: StatusNorma) {
 
 export function podeFundamentar(norma: Norma) {
   if (norma.usarComoFundamento === false) return false;
-  return !['Revogada', 'Superada materialmente', 'Vigência a confirmar', 'Ato alterador'].includes(norma.status);
+  return !['Revogada', 'Superada materialmente', 'Vigência a confirmar', 'Ato alterador', 'Parcialmente vigente'].includes(norma.status);
 }
 
 export function exigeAlerta(norma: Pick<Norma, 'status'>) {

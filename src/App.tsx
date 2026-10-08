@@ -1,299 +1,911 @@
-import { useEffect, useMemo, useState } from 'react';
-import { BookOpen, FileSearch, Scale, Search, ShieldCheck } from 'lucide-react';
-import { normas as normasLocais } from './data/normas';
-import { supabase } from './lib/supabase';
-import { normalizarStatus, ordenarPorSeguranca, podeFundamentar, statusSlug } from './lib/normas';
-import type { Norma } from './types';
+import { useEffect, useRef, useState } from "react";
+import {
+  Building2,
+  ShieldCheck,
+  Search,
+  BookOpen,
+  ClipboardList,
+  History,
+  Star,
+  Download,
+  Printer,
+  ArrowRight,
+} from "lucide-react";
+import { normas as normasLocais } from "./data/normas";
+import { supabase } from "./lib/supabase";
+import { normalizarStatus, podeFundamentar, statusSlug } from "./lib/normas";
+import {
+  ATIVIDADES,
+  PRODUTOS,
+  contextoInicial,
+  faltantes,
+  fonteAtual,
+  secoesExtraidas,
+  lerHistorico,
+  salvarHistorico,
+  exportarConsulta,
+  hoje,
+  urlSegura,
+} from "./lib/consulta";
+import type {
+  Consulta,
+  ContextoEmpresa,
+  RegistroConsulta,
+} from "./lib/consulta";
+import type { Norma } from "./types";
+import { FonteNormativa, LinhaNormativa } from "./components/FonteNormativa";
+import { Revisao } from "./components/Revisao";
 
-type ResultadoConsulta = {
-  id?: string;
-  trecho_id?: number;
-  aspecto?: string;
-  titulo: string;
-  dispositivo?: string;
-  pagina?: number;
-  conteudo: string;
-  status?: string;
-  relevancia?: number;
-  relacoes?: Array<{ tipo: string; norma_relacionada: string; dispositivo?: string; observacoes?: string }>;
-  normas?: { titulo: string; status: string };
-};
-
-type ResultadoStatusNorma = {
+type Tab = "consulta" | "base" | "roteiros" | "historico" | "revisao";
+type StatusResultado = {
   norma_id: string;
   titulo: string;
-  tipo: string;
-  numero: string;
-  ano: number;
   status: string;
   status_detalhado?: string;
-  usar_como_fundamento: boolean;
   observacao_vigencia?: string;
   ultima_verificacao?: string;
-  relevancia?: number;
-  relacoes?: Array<{ tipo: string; norma_relacionada: string; dispositivo?: string; observacoes?: string }>;
+  usar_como_fundamento: boolean;
 };
-
-type RelacaoBanco = {
-  norma_origem_id: string;
-  norma_destino_id: string;
-  tipo: string;
-  dispositivo?: string | null;
-  observacoes?: string | null;
-};
-
-type TemaId = 'todos' | 'armas' | 'municoes' | 'cac' | 'explosivos' | 'blindagem' | 'comercio_exterior' | 'sisfpc' | 'seguranca_privada';
-
-type QualidadeAderencia = {
-  rotulo: 'Alta aderência' | 'Aderência moderada' | 'Aderência baixa';
-  slug: 'alta' | 'moderada' | 'baixa';
-  conclusiva: boolean;
-};
-
-const TEMAS: Array<{ id: TemaId; rotulo: string; contexto: string }> = [
-  { id: 'todos', rotulo: 'Todos', contexto: '' },
-  { id: 'armas', rotulo: 'Armas', contexto: 'arma de fogo armas calibre registro aquisição porte' },
-  { id: 'municoes', rotulo: 'Munições', contexto: 'munição munições marcação rastreabilidade aquisição recarga' },
-  { id: 'cac', rotulo: 'CAC', contexto: 'CAC colecionador atirador caçador tiro desportivo guia de tráfego CR' },
-  { id: 'explosivos', rotulo: 'Explosivos', contexto: 'explosivos detonação nitrato de amônio SICOEX armazenamento transporte' },
-  { id: 'blindagem', rotulo: 'Blindagem', contexto: 'blindagem proteção balística EPBI SICOVAB veículo blindado colete balístico' },
-  { id: 'comercio_exterior', rotulo: 'Importação / Exportação', contexto: 'importação exportação comércio exterior PCE LPCO DUIMP Siscomex' },
-  { id: 'sisfpc', rotulo: 'SisFPC', contexto: 'SisFPC registro fiscalização autorização DFPC SFPC PCE' },
-  { id: 'seguranca_privada', rotulo: 'Segurança Privada', contexto: 'segurança privada Polícia Federal PCE menor potencial ofensivo vigilância' },
+const exemplos = [
+  "Minha empresa precisa de registro para comercializar produtos químicos?",
+  "Quais requisitos se aplicam à importação de PCE?",
+  "Como funciona o apostilamento de atividade no registro da empresa?",
+  "Empresa de segurança privada pode adquirir PCE de menor potencial ofensivo?",
 ];
-
-const chaveNorma = (titulo: string) => titulo.trim().toLowerCase();
-const perguntaSobreVigencia = (texto: string) => /\b(vigent|vig[eê]ncia|revogad|revogou|revoga[cç][aã]o|alterad|situa[cç][aã]o normativa|ainda vale|est[aá] valendo)\w*/i.test(texto);
-const perguntaCompostaOuComparativa = (texto: string) => {
-  const t = texto.toLowerCase();
-  if (/(diferen[cç]a|comparar|compare|comparativo|versus|\bvs\b|o que muda)/i.test(t)) return true;
-  const sinais = [
-    /(adquir|aquisi[cç][aã]o|comprar|compra)/i,
-    /(transport|tr[aá]fego|\bgt\b|\bgte\b)/i,
-    /(registr|cadastr|craf|sigma|sinarm)/i,
-    /(transfer)/i,
-    /(muni[cç][aã]o|muni[cç][oõ]es|cartuchos?|recarga|insumos)/i,
-    /(^|[^a-z])porte([^a-z]|$)|portar arma/i,
-    /(requisito|documento|exig[eê]ncia|necess[aá]rio|deve apresentar)/i,
-    /(procedimento|como fazer|como obter|como solicitar|requerer|pedido)/i,
-  ];
-  return sinais.filter((r) => r.test(t)).length >= 2;
-};
-
-const qualidadeDaAderencia = (relevancia?: number): QualidadeAderencia => {
-  const valor = Number(relevancia || 0);
-  if (valor >= 3) return { rotulo: 'Alta aderência', slug: 'alta', conclusiva: true };
-  if (valor >= 1.2) return { rotulo: 'Aderência moderada', slug: 'moderada', conclusiva: true };
-  return { rotulo: 'Aderência baixa', slug: 'baixa', conclusiva: false };
-};
-
-const rotuloRelacao = (tipo: string) => {
-  const mapa: Record<string, string> = {
-    altera: 'Altera', alterada_por: 'Alterada por', revoga: 'Revoga', revogada_por: 'Revogada por',
-    complementa: 'Complementa', regulamenta: 'Regulamenta', substitui: 'Substitui', consolida: 'Consolida', cita: 'Cita',
-  };
-  return mapa[tipo] || tipo.replaceAll('_', ' ');
-};
+const label = (opcoes: readonly (readonly [string, string])[], id: string) =>
+  opcoes.find((x) => x[0] === id)?.[1] || id;
 
 export default function App() {
-  const [tab, setTab] = useState<'consulta' | 'base'>('consulta');
-  const [q, setQ] = useState('');
-  const [pergunta, setPergunta] = useState('');
-  const [tema, setTema] = useState<TemaId>('todos');
-  const [resposta, setResposta] = useState<ResultadoConsulta[] | null>(null);
-  const [statusNormas, setStatusNormas] = useState<ResultadoStatusNorma[] | null>(null);
-  const [consultando, setConsultando] = useState(false);
-  const [buscaRealizada, setBuscaRealizada] = useState(false);
-  const [erroConsulta, setErroConsulta] = useState('');
+  const [tab, setTab] = useState<Tab>("consulta");
+  const [pergunta, setPergunta] = useState("");
+  const [contexto, setContexto] = useState<ContextoEmpresa>(contextoInicial);
+  const [consulta, setConsulta] = useState<RegistroConsulta | null>(null);
+  const [status, setStatus] = useState<StatusResultado[] | null>(null);
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState("");
+  const [pendencias, setPendencias] = useState<string[]>([]);
+  const [historico, setHistorico] = useState<RegistroConsulta[]>(lerHistorico);
   const [normas, setNormas] = useState<Norma[]>(normasLocais);
+  const [busca, setBusca] = useState("");
+  const [avisoBase, setAvisoBase] = useState("");
+  const [mensagem, setMensagem] = useState("");
+  const requestId = useRef(0);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (!supabase) return;
-    Promise.all([
-      supabase.from('normas').select('id,tipo,numero,ano,titulo,orgao,data_norma,assunto,status,status_detalhado,norma_principal,usar_como_fundamento,vigencia_inicio,vigencia_fim,ultima_verificacao,observacao_vigencia,palavras_chave').order('ano', { ascending: false }),
-      supabase.from('relacoes_normativas').select('norma_origem_id,norma_destino_id,tipo,dispositivo,observacoes'),
-    ]).then(([normasRes, relacoesRes]) => {
-      if (!normasRes.data?.length) return;
-      const dados = normasRes.data as any[];
-      const tituloPorId = new Map(dados.map((n) => [n.id, n.titulo]));
-      const relacoesPorNorma = new Map<string, string[]>();
-      ((relacoesRes.data || []) as RelacaoBanco[]).forEach((r) => {
-        const destino = tituloPorId.get(r.norma_destino_id);
-        if (!destino) return;
-        const atual = relacoesPorNorma.get(r.norma_origem_id) || [];
-        atual.push(`${rotuloRelacao(r.tipo)}: ${destino}${r.dispositivo ? ` — ${r.dispositivo}` : ''}`);
-        relacoesPorNorma.set(r.norma_origem_id, atual);
-      });
-      const catalogo = new Map(normasLocais.map((n) => [chaveNorma(n.titulo), n]));
-      dados.forEach((n) => {
-        const local = catalogo.get(chaveNorma(n.titulo));
-        catalogo.set(chaveNorma(n.titulo), {
-          ...local, id: n.id, tipo: n.tipo, numero: n.numero, ano: n.ano, titulo: n.titulo, assunto: n.assunto,
-          orgao: n.orgao || undefined, dataPublicacao: n.data_norma || undefined, vigenciaInicio: n.vigencia_inicio || undefined,
-          vigenciaFim: n.vigencia_fim || null, status: normalizarStatus(n.status), statusDetalhado: n.status_detalhado || undefined,
-          normaPrincipal: n.norma_principal ?? undefined, usarComoFundamento: n.usar_como_fundamento ?? undefined,
-          ultimaVerificacao: n.ultima_verificacao || undefined, observacaoVigencia: n.observacao_vigencia || undefined,
-          palavrasChave: n.palavras_chave || [], relacoes: relacoesPorNorma.get(n.id) || local?.relacoes || [],
-        } as Norma);
-      });
-      setNormas([...catalogo.values()].sort((a, b) => b.ano - a.ano || a.titulo.localeCompare(b.titulo)));
-    });
-  }, []);
-
-  async function consultar() {
-    if (!pergunta.trim()) return;
-    setErroConsulta('');
-    setBuscaRealizada(true);
-    setConsultando(true);
-    setResposta(null);
-    setStatusNormas(null);
-
+    let ativo = true;
     if (!supabase) {
-      setErroConsulta('A conexão com a base normativa não está disponível.');
-      setConsultando(false);
+      setAvisoBase(
+        "Conexão indisponível. O catálogo abaixo é uma referência local, sem confirmação do estado atual.",
+      );
       return;
     }
-
-    if (perguntaSobreVigencia(pergunta)) {
-      const { data, error } = await supabase.rpc('consultar_status_norma', { consulta: pergunta.trim(), limite: 6 });
-      if (error) setErroConsulta('Não foi possível consultar a situação normativa agora.');
-      else setStatusNormas((data || []) as ResultadoStatusNorma[]);
-      setConsultando(false);
-      return;
-    }
-
-    const temaSelecionado = TEMAS.find((item) => item.id === tema);
-    const consultaEfetiva = [pergunta.trim(), temaSelecionado?.contexto].filter(Boolean).join(' ');
-    const consultaComposta = perguntaCompostaOuComparativa(pergunta);
-    const rpc = consultaComposta ? 'consultar_base_normativa_composta' : 'consultar_base_normativa';
-    const { data: achados, error } = await supabase.rpc(rpc, { consulta: consultaEfetiva, limite: consultaComposta ? 10 : 12 });
-
-    if (error) {
-      setErroConsulta('Não foi possível consultar a base normativa agora.');
-      setResposta([]);
-      setConsultando(false);
-      return;
-    }
-
-    const seguros = ordenarPorSeguranca((achados || []) as ResultadoConsulta[]).filter((item) => {
-      const status = normalizarStatus(item.status);
-      return !['Revogada', 'Superada materialmente', 'Vigência a confirmar', 'Ato alterador', 'Parcialmente vigente'].includes(status);
-    });
-    const melhorRelevancia = Math.max(...seguros.map((item) => Number(item.relevancia || 0)), 0);
-    const corteDinamico = consultaComposta ? 0.35 : Math.max(0.35, melhorRelevancia * 0.22);
-    const aderentes = seguros.filter((item) => Number(item.relevancia || 0) >= corteDinamico).slice(0, consultaComposta ? 10 : 8);
-    setResposta(aderentes.map((x) => ({ ...x, normas: { titulo: x.titulo, status: normalizarStatus(x.status) } })));
-    setConsultando(false);
+    supabase
+      .from("normas")
+      .select(
+        "id,tipo,numero,ano,titulo,orgao,assunto,status,status_detalhado,usar_como_fundamento,ultima_verificacao,observacao_vigencia,fonte_oficial,vigencia_inicio,vigencia_fim,palavras_chave",
+      )
+      .order("ano", { ascending: false })
+      .then(({ data, error }) => {
+        if (!ativo) return;
+        if (error || !data?.length) {
+          setAvisoBase(
+            "Não foi possível atualizar o catálogo. Exibindo referência local.",
+          );
+          return;
+        }
+        setNormas(
+          data.map((n) => ({
+            id: n.id,
+            tipo: n.tipo,
+            numero: n.numero,
+            ano: n.ano,
+            titulo: n.titulo,
+            orgao: n.orgao,
+            assunto: n.assunto,
+            status: normalizarStatus(n.status),
+            statusDetalhado: n.status_detalhado,
+            usarComoFundamento: n.usar_como_fundamento,
+            ultimaVerificacao: n.ultima_verificacao,
+            observacaoVigencia: n.observacao_vigencia,
+            fonteOficial: n.fonte_oficial,
+            vigenciaInicio: n.vigencia_inicio,
+            vigenciaFim: n.vigencia_fim,
+            palavrasChave: n.palavras_chave || [],
+          })),
+        );
+      });
+    return () => {
+      ativo = false;
+    };
+  }, []);
+  function atualizarContexto<K extends keyof ContextoEmpresa>(
+    campo: K,
+    valor: ContextoEmpresa[K],
+  ) {
+    setContexto((c) => ({ ...c, [campo]: valor }));
+    invalidar();
   }
-
-  const filtered = useMemo(() => {
-    const termo = q.toLowerCase();
-    return normas.filter((n) => [n.titulo, n.assunto, n.status, n.statusDetalhado, n.orgao, ...(n.palavrasChave || [])].filter(Boolean).join(' ').toLowerCase().includes(termo));
-  }, [q, normas]);
-
-  const resumoBase = useMemo(() => ({
-    total: normas.length,
-    aptas: normas.filter(podeFundamentar).length,
-    atencao: normas.filter((n) => ['Parcialmente vigente', 'Vigência a confirmar', 'Superada materialmente'].includes(n.status)).length,
-    revogadas: normas.filter((n) => n.status === 'Revogada').length,
-  }), [normas]);
-
-  const sintese = useMemo(() => {
-    if (!resposta?.length) return null;
-    const principal = resposta[0];
-    const qualidade = qualidadeDaAderencia(principal.relevancia);
-    const metadadosPrincipal = normas.find((n) => chaveNorma(n.titulo) === chaveNorma(principal.titulo));
-    const fundamentos = resposta.slice(0, 6);
-    const normasUnicas = [...new Set(fundamentos.map((r) => r.titulo))];
-    const statusEncontrados = [...new Set(fundamentos.map((r) => normalizarStatus(r.status)))];
-    const aspectos = [...new Set(fundamentos.map((r) => r.aspecto).filter(Boolean))] as string[];
-    const observacoes: string[] = [];
-    if (statusEncontrados.some((s) => s !== 'Vigente')) observacoes.push('Há fundamento vigente com alterações; considere a redação consolidada e a cadeia normativa.');
-    if (metadadosPrincipal?.observacaoVigencia) observacoes.push(metadadosPrincipal.observacaoVigencia);
-    if (normasUnicas.length > 1) observacoes.push(`A consulta foi sustentada por ${normasUnicas.length} normas relacionadas ao tema.`);
-    if (aspectos.length > 1) observacoes.push(`A pergunta contém ${aspectos.length} aspectos normativos e foi analisada separadamente por assunto.`);
-    if (!qualidade.conclusiva) observacoes.push('A aderência é baixa; o primeiro resultado não é apresentado como conclusão automática.');
-    return { principal, qualidade, metadadosPrincipal, fundamentos, aspectos, observacoes };
-  }, [resposta, normas]);
-
-  const possuiAlerta = resposta?.some((r) => normalizarStatus(r.status) !== 'Vigente');
-  const temaAtual = TEMAS.find((item) => item.id === tema)?.rotulo || 'Todos';
+  function invalidar() {
+    requestId.current++;
+    setConsulta(null);
+    setStatus(null);
+    setPendencias([]);
+    setErro("");
+    setCarregando(false);
+  }
+  function guardar(itens: RegistroConsulta[]) {
+    setHistorico(itens);
+    if (!salvarHistorico(itens))
+      setMensagem(
+        "Seu navegador não permitiu salvar o histórico. Você ainda pode exportar a consulta.",
+      );
+  }
+  async function consultar() {
+    if (!pergunta.trim() || carregando) return;
+    const rid = ++requestId.current;
+    setConsulta(null);
+    setStatus(null);
+    setErro("");
+    setPendencias([]);
+    setMensagem("");
+    if (!supabase) {
+      setErro("Conexão com a base normativa indisponível.");
+      return;
+    }
+    if (!contexto.data || contexto.data > hoje()) {
+      setPendencias([
+        "Selecione a data atual ou uma data anterior. Regras futuras não serão tratadas como obrigações atuais.",
+      ]);
+      return;
+    }
+    if (contexto.data < hoje()) {
+      setPendencias([
+        "A base ainda não possui todas as redações históricas. Para esta versão, consulte na data atual.",
+      ]);
+      return;
+    }
+    const vigencia =
+      /\b(vigente|vigência|revogad|revogou|revoga[cç][aã]o|ainda vale|situa[cç][aã]o normativa)/i.test(
+        pergunta,
+      );
+    const faltam = vigencia ? [] : faltantes(pergunta, contexto);
+    if (faltam.length) {
+      setPendencias(faltam);
+      inputRef.current?.focus();
+      return;
+    }
+    setCarregando(true);
+    try {
+      if (vigencia) {
+        const { data, error } = await supabase.rpc("consultar_status_norma", {
+          consulta: pergunta.trim(),
+          limite: 6,
+        });
+        if (rid !== requestId.current) return;
+        if (error) throw error;
+        setStatus(data || []);
+        return;
+      }
+      const { data, error } = await supabase.rpc("consultar_empresa_pce", {
+        p_pergunta: pergunta.trim(),
+        p_produto: contexto.produto,
+        p_atividade: contexto.atividade,
+        p_publico: contexto.publico,
+        p_data: contexto.data,
+        p_limite: 10,
+      });
+      if (rid !== requestId.current) return;
+      if (error) throw error;
+      const resposta = data as Consulta;
+      if (!resposta || !Array.isArray(resposta.fontes))
+        throw new Error("Resposta inválida");
+      resposta.fontes = resposta.fontes.filter((f) =>
+        fonteAtual(f, contexto.data),
+      );
+      const registro: RegistroConsulta = {
+        id: crypto.randomUUID(),
+        pergunta: pergunta.trim(),
+        contexto: { ...contexto },
+        consulta: resposta,
+        criadoEm: new Date().toISOString(),
+        favorito: false,
+      };
+      setConsulta(registro);
+      // Os detalhes ficam no dispositivo do usuário, sem serem enviados ao banco.
+      guardar([registro, ...historico].slice(0, 30));
+    } catch {
+      if (rid === requestId.current)
+        setErro("Não foi possível concluir a consulta. Tente novamente.");
+    } finally {
+      if (rid === requestId.current) setCarregando(false);
+    }
+  }
+  function abrirRegistro(r: RegistroConsulta) {
+    invalidar();
+    setContexto(r.contexto);
+    setPergunta(r.pergunta);
+    setConsulta(r);
+    setTab("consulta");
+  }
+  function sugerir(q: string, atividade = "todos") {
+    invalidar();
+    setPergunta(q);
+    setContexto((c) => ({ ...c, atividade }));
+    setTab("consulta");
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }
+  const fontes = consulta?.consulta.fontes || [];
+  const extracoes = secoesExtraidas(fontes);
+  const catalogo = normas.filter((n) =>
+    [n.titulo, n.assunto, n.status, ...(n.palavrasChave || [])]
+      .join(" ")
+      .toLocaleLowerCase("pt-BR")
+      .includes(busca.toLocaleLowerCase("pt-BR")),
+  );
+  const favorito =
+    consulta && historico.find((h) => h.id === consulta.id)?.favorito;
 
   return (
     <>
       <header>
-        <div className="brand"><div className="seal"><ShieldCheck /></div><div><b>NORMAS DFPC</b><span>Base normativa de Produtos Controlados pelo Exército</span></div></div>
-        <nav><button className={tab === 'consulta' ? 'active' : ''} onClick={() => setTab('consulta')}>Consulta</button><button className={tab === 'base' ? 'active' : ''} onClick={() => setTab('base')}>Base normativa</button></nav>
+        <div className="brand">
+          <div className="seal">
+            <ShieldCheck />
+          </div>
+          <div>
+            <b>NORMAS DFPC</b>
+            <span>Orientação normativa para atividades com PCE</span>
+          </div>
+        </div>
+        <nav aria-label="Navegação principal">
+          {(
+            [
+              ["consulta", "Consulta"],
+              ["base", "Normas"],
+              ["roteiros", "Procedimentos"],
+              ["historico", "Histórico"],
+              ["revisao", "Revisão"],
+            ] as const
+          ).map(([id, t]) => (
+            <button
+              key={id}
+              className={tab === id ? "active" : ""}
+              onClick={() => setTab(id)}
+              aria-current={tab === id ? "page" : undefined}
+            >
+              {t}
+            </button>
+          ))}
+        </nav>
       </header>
-
+      {mensagem && (
+        <div className="global-notice" role="status">
+          {mensagem}
+          <button onClick={() => setMensagem("")} aria-label="Fechar aviso">
+            ×
+          </button>
+        </div>
+      )}
       <main>
-        {tab === 'consulta' ? (
+        {tab === "consulta" && (
           <>
             <section className="hero">
-              <div className="eyebrow"><Scale size={16} /> CONSULTA NORMATIVA PCE</div>
-              <h1>Encontre respostas fundamentadas<br />nas normas da DFPC.</h1>
-              <p>Consulte conteúdo e também a situação de vigência de uma norma, sem usar atos revogados ou incertos como fundamento material.</p>
-
-              <div className="topic-filters" aria-label="Filtro por tema">
-                {TEMAS.map((item) => <button key={item.id} className={`topic-chip ${tema === item.id ? 'active' : ''}`} onClick={() => { setTema(item.id); setResposta(null); setStatusNormas(null); setBuscaRealizada(false); }}>{item.rotulo}</button>)}
+              <div className="eyebrow">
+                <Building2 size={17} /> CONSULTA EMPRESARIAL PCE
               </div>
-
-              <div className="ask"><Search /><input value={pergunta} onChange={(e) => setPergunta(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && consultar()} placeholder="Ex.: O que é PCE? A Portaria 42/2020 está vigente?" /><button onClick={consultar} disabled={consultando || !pergunta.trim()}>{consultando ? 'Buscando...' : 'Consultar'}</button></div>
-              <small>Tema: <b>{temaAtual}</b>. Perguntas de vigência consultam o catálogo completo; perguntas materiais usam somente fundamentos seguros.</small>
-
-              {erroConsulta && <div className="answer empty"><h3>Falha na consulta</h3><p>{erroConsulta}</p></div>}
-
-              {statusNormas && statusNormas.length > 0 && (
-                <section className="structured-answer">
-                  <div className="structured-head"><div><span>VERIFICAÇÃO DE VIGÊNCIA</span><h2>{pergunta}</h2></div><i className={`badge ${statusSlug(normalizarStatus(statusNormas[0].status))}`}>{normalizarStatus(statusNormas[0].status)}</i></div>
-                  <div className="answer-block primary-block"><h3>Resultado principal</h3><p><b>{statusNormas[0].titulo}</b></p><p>{statusNormas[0].status_detalhado || normalizarStatus(statusNormas[0].status)}</p>{statusNormas[0].observacao_vigencia && <p>{statusNormas[0].observacao_vigencia}</p>}<p><b>Uso como fundamento automático:</b> {statusNormas[0].usar_como_fundamento ? 'permitido' : 'bloqueado'}</p>{statusNormas[0].ultima_verificacao && <p><b>Última verificação:</b> {statusNormas[0].ultima_verificacao.split('-').reverse().join('/')}</p>}</div>
-                  {statusNormas[0].relacoes?.length ? <div className="norm-chain"><strong>Cadeia normativa</strong>{statusNormas[0].relacoes.map((r, i) => <span key={`${r.tipo}-${i}`}>{rotuloRelacao(r.tipo)}: {r.norma_relacionada}{r.dispositivo ? ` — ${r.dispositivo}` : ''}</span>)}</div> : null}
-                  {statusNormas.length > 1 && <div className="answer-block observations-block"><h3>Outras correspondências</h3>{statusNormas.slice(1, 4).map((n) => <p key={n.norma_id}>{n.titulo} — <b>{normalizarStatus(n.status)}</b></p>)}</div>}
-                  <div className="answer-block observations-block"><small>Esta consulta informa a situação cadastrada da norma. Norma revogada, superada, alteradora ou com vigência não confirmada não é usada automaticamente como fundamento material.</small></div>
-                </section>
-              )}
-
-              {statusNormas && statusNormas.length === 0 && !consultando && <div className="answer empty"><h3>Norma não localizada</h3><p>Não encontrei correspondência suficiente no catálogo. Informe, de preferência, tipo, número e ano da norma.</p></div>}
-
-              {sintese && !sintese.qualidade.conclusiva && <div className="answer confidence-warning"><div className="answer-head"><div><h3>Resultado insuficiente para conclusão</h3><p>Foram encontrados trechos relacionados, mas a aderência ainda é baixa.</p></div><span className={`quality-badge ${sintese.qualidade.slug}`}>{sintese.qualidade.rotulo}</span></div><p>Refine a pergunta ou selecione um tema específico.</p></div>}
-
-              {sintese && sintese.qualidade.conclusiva && (
-                <section className="structured-answer">
-                  <div className="structured-head"><div><span>{sintese.aspectos.length > 1 ? 'RESPOSTA COMPOSTA FUNDAMENTADA' : 'RESPOSTA FUNDAMENTADA'}</span><h2>{pergunta}</h2></div><div className="structured-badges"><span className={`quality-badge ${sintese.qualidade.slug}`}>{sintese.qualidade.rotulo}</span><i className={`badge ${statusSlug(normalizarStatus(sintese.principal.status))}`}>{normalizarStatus(sintese.principal.status)}</i></div></div>
-                  {sintese.aspectos.length > 1 && <div className="answer-block aspects-block"><h3>Aspectos identificados</h3><div className="aspect-list">{sintese.aspectos.map((aspecto) => <span className="aspect-badge" key={aspecto}>{aspecto}</span>)}</div></div>}
-                  <div className="answer-block primary-block"><h3>{sintese.aspectos.length > 1 ? 'Primeiro fundamento' : 'Resposta'}</h3><p>{sintese.principal.conteudo}</p></div>
-                  {sintese.aspectos.length > 1 && <div className="answer-block"><h3>Fundamentos por aspecto</h3>{sintese.aspectos.map((aspecto) => { const f = sintese.fundamentos.find((item) => item.aspecto === aspecto); return f ? <div className="foundation-line" key={aspecto}><b>{aspecto}</b><span>{f.titulo} — {f.dispositivo || 'Dispositivo não informado'}</span><p>{f.conteudo}</p></div> : null; })}</div>}
-                  <div className="answer-grid"><div className="answer-block"><h3>Fundamentação</h3>{sintese.fundamentos.map((f, i) => <div className="foundation-line" key={`${f.trecho_id || f.id}-${i}`}><b>{f.aspecto ? `${f.aspecto}: ` : ''}{f.titulo}</b><span>{f.dispositivo || 'Dispositivo não informado'}{f.pagina ? ` • pág. ${f.pagina}` : ''}</span></div>)}</div><div className="answer-block"><h3>Situação normativa</h3><p><b>Aderência:</b> {sintese.qualidade.rotulo}</p><p><b>Fundamento:</b> {normalizarStatus(sintese.principal.status)}</p>{sintese.metadadosPrincipal?.statusDetalhado && <p>{sintese.metadadosPrincipal.statusDetalhado}</p>}{sintese.metadadosPrincipal?.ultimaVerificacao && <p><b>Última verificação:</b> {sintese.metadadosPrincipal.ultimaVerificacao.split('-').reverse().join('/')}</p>}</div></div>
-                  <div className="answer-block observations-block"><h3>Observações</h3>{sintese.observacoes.length ? sintese.observacoes.map((o, i) => <p key={`${o}-${i}`}>• {o}</p>) : <p>Não foi identificado alerta adicional de vigência.</p>}<small>Síntese baseada somente nos trechos recuperados do banco.</small></div>
-                </section>
-              )}
-
-              {Array.isArray(resposta) && resposta.length > 0 && (
-                <div className="answer detailed-sources"><div className="answer-head"><div><h3>Fontes e trechos utilizados</h3><p>{resposta.length} fundamento{resposta.length > 1 ? 's' : ''} seguro{resposta.length > 1 ? 's' : ''}.</p></div>{possuiAlerta && <span className="attention">Atenção à vigência</span>}</div>
-                  {resposta.map((r, idx) => {
-                    const status = normalizarStatus(r.status);
-                    const metadados = normas.find((n) => chaveNorma(n.titulo) === chaveNorma(r.titulo));
-                    const relacoes = r.relacoes?.length ? r.relacoes.map((x) => `${rotuloRelacao(x.tipo)}: ${x.norma_relacionada}${x.dispositivo ? ` — ${x.dispositivo}` : ''}`) : metadados?.relacoes || [];
-                    const qualidade = qualidadeDaAderencia(r.relevancia);
-                    return <article key={`${r.trecho_id || r.id || idx}`}><div className="result-title"><b>{r.titulo}</b><div className="result-badges">{r.aspecto && <span className="aspect-badge">{r.aspecto}</span>}<span className={`quality-badge ${qualidade.slug}`}>{qualidade.rotulo}</span><i className={`badge ${statusSlug(status)}`}>{status}</i></div></div><span>{r.dispositivo || 'Dispositivo não informado'}{r.pagina ? ` • pág. ${r.pagina}` : ''}</span><p>{r.conteudo}</p><div className="source-meta"><strong>Fundamento:</strong> {r.titulo}{r.dispositivo ? ` — ${r.dispositivo}` : ''}{r.aspecto && <><br /><strong>Aspecto:</strong> {r.aspecto}</>}<br /><strong>Aderência:</strong> {qualidade.rotulo}{typeof r.relevancia === 'number' ? ` • índice ${r.relevancia.toFixed(2)}` : ''}<br /><strong>Situação:</strong> {metadados?.statusDetalhado || status}{metadados?.observacaoVigencia && <><br /><strong>Observação:</strong> {metadados.observacaoVigencia}</>}</div>{relacoes.length > 0 && <div className="norm-chain"><strong>Cadeia normativa</strong>{relacoes.map((relacao, i) => <span key={`${relacao}-${i}`}>{relacao}</span>)}</div>}</article>;
-                  })}
+              <h1>
+                Entenda a norma.
+                <br />
+                Encontre o próximo passo.
+              </h1>
+              <p>
+                Consulte requisitos, procedimentos e vigência com fundamentos
+                rastreáveis para a atividade da sua empresa.
+              </p>
+              <form
+                className="consult-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void consultar();
+                }}
+              >
+                <div className="context-grid">
+                  <label>
+                    Público
+                    <select
+                      value={contexto.publico}
+                      onChange={(e) =>
+                        atualizarContexto(
+                          "publico",
+                          e.target.value as ContextoEmpresa["publico"],
+                        )
+                      }
+                    >
+                      <option value="empresa">Empresas</option>
+                      <option value="todos">Todos os públicos</option>
+                    </select>
+                  </label>
+                  <label>
+                    Produto
+                    <select
+                      value={contexto.produto}
+                      onChange={(e) =>
+                        atualizarContexto("produto", e.target.value)
+                      }
+                    >
+                      {PRODUTOS.map(([v, t]) => (
+                        <option key={v} value={v}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Atividade
+                    <select
+                      value={contexto.atividade}
+                      onChange={(e) =>
+                        atualizarContexto("atividade", e.target.value)
+                      }
+                    >
+                      {ATIVIDADES.map(([v, t]) => (
+                        <option key={v} value={v}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <label className="question-label" htmlFor="pergunta">
+                  Qual é a dúvida?
+                </label>
+                <div className="ask">
+                  <Search aria-hidden="true" />
+                  <textarea
+                    id="pergunta"
+                    ref={inputRef}
+                    value={pergunta}
+                    onChange={(e) => {
+                      setPergunta(e.target.value);
+                      invalidar();
+                    }}
+                    placeholder="Descreva a dúvida e a situação da empresa…"
+                    maxLength={2000}
+                    rows={3}
+                  />
+                  <button
+                    type="submit"
+                    disabled={carregando || !pergunta.trim()}
+                  >
+                    {carregando ? "Consultando…" : "Consultar"}
+                    <ArrowRight size={16} />
+                  </button>
+                </div>
+                <details className="context-details">
+                  <summary>Detalhes do caso e data da consulta</summary>
+                  <div className="context-grid">
+                    <label>
+                      Situação de registro informada
+                      <select
+                        value={contexto.registro}
+                        onChange={(e) =>
+                          atualizarContexto("registro", e.target.value)
+                        }
+                      >
+                        <option value="nao_informado">Não informado</option>
+                        <option value="sem_registro">
+                          Empresa sem registro
+                        </option>
+                        <option value="registrada">Empresa com registro</option>
+                        <option value="em_renovacao">
+                          Registro em renovação
+                        </option>
+                      </select>
+                    </label>
+                    <label>
+                      Data de referência
+                      <input
+                        type="date"
+                        value={contexto.data}
+                        max={hoje()}
+                        required
+                        onChange={(e) =>
+                          atualizarContexto("data", e.target.value)
+                        }
+                      />
+                    </label>
+                  </div>
+                  <label>
+                    Características do produto e finalidade
+                    <textarea
+                      value={contexto.detalhes}
+                      onChange={(e) =>
+                        atualizarContexto("detalhes", e.target.value)
+                      }
+                      maxLength={1000}
+                      placeholder="Ex.: composição e concentração, tipo de produto, finalidade da operação."
+                    />
+                  </label>
+                  <small>
+                    Estes detalhes ficam no histórico deste navegador. A busca
+                    usa a pergunta e os filtros de produto e atividade; o
+                    registro informado não comprova autorização da empresa.
+                  </small>
+                </details>
+              </form>
+              {!consulta && !status && !carregando && (
+                <div className="examples" aria-label="Exemplos de perguntas">
+                  {exemplos.map((q) => (
+                    <button key={q} onClick={() => sugerir(q)}>
+                      {q}
+                    </button>
+                  ))}
                 </div>
               )}
-
-              {buscaRealizada && !erroConsulta && Array.isArray(resposta) && resposta.length === 0 && !consultando && <div className="answer empty"><h3>Nenhum fundamento seguro localizado</h3><p>A base não encontrou trecho em norma apta a fundamentar automaticamente a resposta.</p></div>}
             </section>
-
-            <section className="features"><article><BookOpen /><h3>Resposta fundamentada</h3><p>Entrega conteúdo, fundamento, vigência, aderência e observações.</p></article><article><ShieldCheck /><h3>Consulta de vigência</h3><p>Consulta também atos alteradores, revogados, superados ou pendentes sem usá-los como fundamento material.</p></article><article><FileSearch /><h3>Aderência e cadeia normativa</h3><p>Mostra relações de alteração, revogação, substituição e complementação.</p></article></section>
+            <div className="results" aria-live="polite" aria-busy={carregando}>
+              {carregando && (
+                <div className="answer">
+                  <p>Consultando os fundamentos cadastrados…</p>
+                </div>
+              )}
+              {erro && (
+                <div className="answer warning" role="alert">
+                  <h2>Consulta indisponível</h2>
+                  <p>{erro}</p>
+                </div>
+              )}
+              {!!pendencias.length && (
+                <div className="answer warning">
+                  <h2>Precisamos identificar o caso</h2>
+                  <ul>
+                    {pendencias.map((p) => (
+                      <li key={p}>{p}</li>
+                    ))}
+                  </ul>
+                  <p>
+                    Complete os filtros ou inclua essas informações na pergunta.
+                  </p>
+                </div>
+              )}
+              {status && (
+                <section className="structured-answer">
+                  <h2>Situação normativa cadastrada</h2>
+                  {!status.length ? (
+                    <p>Não localizei a norma. Informe tipo, número e ano.</p>
+                  ) : (
+                    status.map((s, i) => (
+                      <article key={s.norma_id} className="source-card">
+                        <h3>{s.titulo}</h3>
+                        <span
+                          className={`badge ${statusSlug(normalizarStatus(s.status))}`}
+                        >
+                          {normalizarStatus(s.status)}
+                        </span>
+                        <p>{s.status_detalhado}</p>
+                        <p>{s.observacao_vigencia}</p>
+                        <p className="muted">
+                          Última verificação cadastrada:{" "}
+                          {s.ultima_verificacao || "não informada"}. O uso de
+                          norma parcialmente vigente depende do dispositivo
+                          específico.
+                        </p>
+                        {i === 0 && <LinhaNormativa titulo={s.titulo} />}
+                      </article>
+                    ))
+                  )}
+                </section>
+              )}
+              {consulta && (
+                <section className="structured-answer">
+                  <div className="structured-head">
+                    <div>
+                      <span>
+                        {consulta.criadoEm !== historico[0]?.criadoEm
+                          ? "CONSULTA SALVA"
+                          : "RESULTADO DA CONSULTA"}
+                      </span>
+                      <h2>{consulta.pergunta}</h2>
+                    </div>
+                    <span className="badge">
+                      {fontes.length} fundamento{fontes.length !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                  <div className="case-meta">
+                    <span>{label(PRODUTOS, consulta.contexto.produto)}</span>
+                    <span>
+                      {label(ATIVIDADES, consulta.contexto.atividade)}
+                    </span>
+                    <span>Referência: {consulta.contexto.data}</span>
+                  </div>
+                  <div className="toolbar">
+                    <button
+                      onClick={() => {
+                        const itens = historico.map((h) =>
+                          h.id === consulta.id
+                            ? { ...h, favorito: !h.favorito }
+                            : h,
+                        );
+                        guardar(itens);
+                      }}
+                    >
+                      <Star
+                        size={16}
+                        fill={favorito ? "currentColor" : "none"}
+                      />
+                      {favorito ? "Favoritada" : "Favoritar"}
+                    </button>
+                    <button onClick={() => exportarConsulta(consulta)}>
+                      <Download size={16} />
+                      Exportar consulta
+                    </button>
+                    <button onClick={() => window.print()}>
+                      <Printer size={16} />
+                      Imprimir / PDF
+                    </button>
+                    <button onClick={() => void consultar()}>
+                      Consultar novamente
+                    </button>
+                  </div>
+                  <p className="muted">
+                    Realizada em{" "}
+                    {new Date(consulta.criadoEm).toLocaleString("pt-BR")}.
+                    Consultas salvas preservam os fundamentos daquela consulta;
+                    use “Consultar novamente” para verificar atualizações.
+                  </p>
+                  {!fontes.length ? (
+                    <div className="answer-block warning">
+                      <h3>Fundamento insuficiente para responder</h3>
+                      <p>
+                        Não localizei um dispositivo conferido e aplicável aos
+                        filtros escolhidos. Isso não significa que a atividade é
+                        dispensada de controle.
+                      </p>
+                      <p>
+                        Especifique o produto e a atividade ou revise os
+                        filtros. A base pode precisar de complementação.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      {!!consulta.consulta.orientacoes.length ? (
+                        consulta.consulta.orientacoes.map((o) => (
+                          <div
+                            key={o.id}
+                            className="answer-block primary-block"
+                          >
+                            <h3>{o.titulo}</h3>
+                            {o.secoes.map((s, i) => (
+                              <section key={i}>
+                                <h4>{s.titulo}</h4>
+                                <p>{s.texto}</p>
+                                <p className="muted">
+                                  Fundamentos:{" "}
+                                  {s.dispositivo_ids.map((id) => {
+                                    const idx = fontes.findIndex(
+                                      (f) => f.dispositivo_id === id,
+                                    );
+                                    return idx >= 0 ? (
+                                      <a key={id} href={`#fonte-${idx + 1}`}>
+                                        [{idx + 1}]{" "}
+                                      </a>
+                                    ) : null;
+                                  })}
+                                </p>
+                              </section>
+                            ))}
+                            <small>
+                              Orientação revisada em {o.revisado_em}.
+                            </small>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="answer-block primary-block">
+                          <h3>O que a base permite consultar</h3>
+                          <p>
+                            Foram localizados dispositivos sobre o tema. Ainda
+                            não há uma orientação prática revisada para esta
+                            pergunta específica; confira os requisitos e as
+                            exceções nos fundamentos abaixo.
+                          </p>
+                        </div>
+                      )}
+                      <div className="answer-sections">
+                        {extracoes
+                          .filter((g) => g.itens.length)
+                          .map((g) => (
+                            <div className="answer-block" key={g.titulo}>
+                              <h3>{g.titulo}</h3>
+                              {g.itens.map((f) => {
+                                const i = fontes.indexOf(f) + 1;
+                                return (
+                                  <p key={f.trecho_id}>
+                                    {f.conteudo}{" "}
+                                    <a
+                                      href={`#fonte-${i}`}
+                                      aria-label={`Ver fundamento ${i}`}
+                                    >
+                                      [{i}]
+                                    </a>
+                                  </p>
+                                );
+                              })}
+                            </div>
+                          ))}
+                      </div>
+                      <div className="answer-block observations-block">
+                        <h3>Aplicação ao caso</h3>
+                        <p>
+                          Confirme que o produto, a atividade e as condições
+                          descritas nos dispositivos correspondem à operação da
+                          empresa. A busca textual identifica fundamentos; a
+                          classificação de relevância não comprova autorização
+                          ou dispensa.
+                        </p>
+                        {consulta.consulta.fontes_excluidas > 0 && (
+                          <p>
+                            {consulta.consulta.fontes_excluidas} trecho(s)
+                            candidato(s) ficaram fora por falta de vínculo exato
+                            ou validação de vigência.
+                          </p>
+                        )}
+                      </div>
+                      <h3 className="sources-title">
+                        Fundamentos e texto cadastrado
+                      </h3>
+                      {fontes.map((f, i) => (
+                        <FonteNormativa
+                          key={f.trecho_id}
+                          fonte={f}
+                          indice={i + 1}
+                        />
+                      ))}
+                    </>
+                  )}
+                </section>
+              )}
+            </div>
+            {!consulta && !status && (
+              <section className="features">
+                <article>
+                  <Building2 />
+                  <h3>Produto e atividade</h3>
+                  <p>
+                    Filtros para situações empresariais e esclarecimento quando
+                    faltam dados.
+                  </p>
+                </article>
+                <article>
+                  <BookOpen />
+                  <h3>Fundamento exato</h3>
+                  <p>
+                    Dispositivo vinculado ao trecho, com texto e origem
+                    disponíveis para conferência.
+                  </p>
+                </article>
+                <article>
+                  <ShieldCheck />
+                  <h3>Vigência e rastreabilidade</h3>
+                  <p>
+                    Controle de redações, alterações e data de referência da
+                    consulta.
+                  </p>
+                </article>
+              </section>
+            )}
           </>
-        ) : (
+        )}
+        {tab === "base" && (
           <section className="library">
-            <div className="title"><div><span>BASE DOCUMENTAL</span><h1>Normas cadastradas</h1><p>Catálogo estruturado com status de vigência, relações normativas e política de uso como fundamento.</p></div><div className="search"><Search /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Pesquisar norma ou assunto" /></div></div>
-            <div className="base-stats"><div><b>{resumoBase.total}</b><span>Normas cadastradas</span></div><div><b>{resumoBase.aptas}</b><span>Aptas a fundamentar</span></div><div><b>{resumoBase.atencao}</b><span>Exigem atenção</span></div><div><b>{resumoBase.revogadas}</b><span>Revogadas</span></div></div>
-            <div className="table"><div className="tr head"><span>Norma</span><span>Assunto e cadeia normativa</span><span>Situação</span></div>{filtered.map((n) => <div className="tr" key={n.id}><span><b>{n.titulo}</b><small>{n.tipo} • {n.ano}{n.orgao ? ` • ${n.orgao}` : ''}</small><small>{n.normaPrincipal === false ? 'Ato de relacionamento normativo' : n.usarComoFundamento === false ? 'Bloqueada para fundamento automático' : 'Pode ser usada como fundamento'}</small></span><span>{n.assunto}{n.statusDetalhado && <small>{n.statusDetalhado}</small>}{n.relacoes?.map((r) => <small className="relation-line" key={r}>{r}</small>)}{n.observacaoVigencia && <small>{n.observacaoVigencia}</small>}</span><span><i className={`badge ${statusSlug(n.status)}`}>{n.status}</i>{n.vigenciaInicio && <small>Vigência: {n.vigenciaInicio.split('-').reverse().join('/')}</small>}{n.ultimaVerificacao && <small>Verificado em {n.ultimaVerificacao.split('-').reverse().join('/')}</small>}</span></div>)}</div>
+            <div className="title">
+              <div>
+                <span>ACERVO NORMATIVO</span>
+                <h1>Normas e situação cadastrada</h1>
+                <p>
+                  Consulte a vigência, as alterações e a origem dos fundamentos.
+                </p>
+              </div>
+              <label className="search">
+                <Search size={18} />
+                <input
+                  aria-label="Buscar norma"
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  placeholder="Norma, assunto ou situação"
+                />
+              </label>
+            </div>
+            {avisoBase && <p className="warning">{avisoBase}</p>}
+            <div className="base-stats">
+              <div>
+                <b>{normas.length}</b>
+                <span>Normas no catálogo</span>
+              </div>
+              <div>
+                <b>{normas.filter(podeFundamentar).length}</b>
+                <span>Normas aptas; dispositivos exigem conferência</span>
+              </div>
+              <div>
+                <b>
+                  {
+                    normas.filter((n) => n.status === "Parcialmente vigente")
+                      .length
+                  }
+                </b>
+                <span>Com validação por dispositivo</span>
+              </div>
+              <div>
+                <b>{normas.filter((n) => !n.fonteOficial).length}</b>
+                <span>Links oficiais pendentes</span>
+              </div>
+            </div>
+            {!catalogo.length && <p>Nenhuma norma corresponde à busca.</p>}
+            <div className="norm-list">
+              {catalogo.map((n) => (
+                <article key={n.id} className="source-card">
+                  <div className="source-heading">
+                    <h3>{n.titulo}</h3>
+                    <span className={`badge ${statusSlug(n.status)}`}>
+                      {n.status}
+                    </span>
+                  </div>
+                  <p>{n.assunto}</p>
+                  <p className="muted">
+                    Última verificação: {n.ultimaVerificacao || "não informada"}
+                  </p>
+                  {n.observacaoVigencia && <p>{n.observacaoVigencia}</p>}
+                  <div className="toolbar">
+                    <button
+                      onClick={() => sugerir(`${n.titulo} está vigente?`)}
+                    >
+                      Consultar vigência
+                    </button>
+                    {urlSegura(n.fonteOficial) && (
+                      <a
+                        href={urlSegura(n.fonteOficial)!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Fonte oficial
+                      </a>
+                    )}
+                  </div>
+                  <details>
+                    <summary>Ver cadeia normativa</summary>
+                    <LinhaNormativa titulo={n.titulo} />
+                  </details>
+                </article>
+              ))}
+            </div>
           </section>
         )}
+        {tab === "roteiros" && (
+          <section className="library">
+            <div className="eyebrow">
+              <ClipboardList size={16} /> PROCEDIMENTOS EMPRESARIAIS
+            </div>
+            <h1>Encontre os requisitos da sua operação</h1>
+            <p>
+              Escolha o procedimento, identifique o produto e consulte os
+              fundamentos. Documentos e etapas dependem das condições da norma e
+              do caso.
+            </p>
+            <div className="procedure-grid">
+              {ATIVIDADES.filter(([v]) => v !== "todos").map(([v, t]) => (
+                <article className="source-card" key={v}>
+                  <h2>{t}</h2>
+                  <ol>
+                    <li>Identifique o produto e suas características.</li>
+                    <li>Informe a atividade e a dúvida específica.</li>
+                    <li>
+                      Confira requisitos, exceções e prazos nos dispositivos.
+                    </li>
+                    <li>
+                      Use os documentos e procedimentos que se aplicam ao caso.
+                    </li>
+                  </ol>
+                  <button
+                    onClick={() =>
+                      sugerir(
+                        `Quais requisitos e documentos se aplicam à atividade de ${t.toLowerCase()} de PCE por uma empresa?`,
+                        v,
+                      )
+                    }
+                  >
+                    Consultar este procedimento <ArrowRight size={16} />
+                  </button>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+        {tab === "historico" && (
+          <section className="library">
+            <div className="title">
+              <div>
+                <span>CONSULTAS NESTE NAVEGADOR</span>
+                <h1>Histórico e favoritos</h1>
+                <p>
+                  Até 30 consultas são guardadas neste dispositivo, com a versão
+                  dos fundamentos utilizados.
+                </p>
+              </div>
+              {!!historico.length && (
+                <button
+                  onClick={() => {
+                    guardar([]);
+                    setConsulta(null);
+                    setMensagem("Histórico removido deste navegador.");
+                  }}
+                >
+                  Limpar histórico
+                </button>
+              )}
+            </div>
+            {!historico.length ? (
+              <div className="answer empty">
+                <History />
+                <p>Suas consultas aparecerão aqui.</p>
+              </div>
+            ) : (
+              <div className="history-list">
+                {[...historico]
+                  .sort((a, b) => Number(b.favorito) - Number(a.favorito))
+                  .map((r) => (
+                    <article className="source-card" key={r.id}>
+                      <h3>{r.pergunta}</h3>
+                      <p className="muted">
+                        {new Date(r.criadoEm).toLocaleString("pt-BR")} ·{" "}
+                        {r.consulta.fontes.length} fundamentos ·{" "}
+                        {r.contexto.data}
+                      </p>
+                      <div className="toolbar">
+                        <button onClick={() => abrirRegistro(r)}>
+                          Abrir consulta
+                        </button>
+                        <button
+                          aria-label={
+                            r.favorito ? "Remover favorito" : "Favoritar"
+                          }
+                          onClick={() =>
+                            guardar(
+                              historico.map((h) =>
+                                h.id === r.id
+                                  ? { ...h, favorito: !h.favorito }
+                                  : h,
+                              ),
+                            )
+                          }
+                        >
+                          <Star
+                            size={16}
+                            fill={r.favorito ? "currentColor" : "none"}
+                          />
+                        </button>
+                        <button onClick={() => exportarConsulta(r)}>
+                          Exportar
+                        </button>
+                        <button
+                          onClick={() =>
+                            guardar(historico.filter((h) => h.id !== r.id))
+                          }
+                        >
+                          Excluir
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+              </div>
+            )}
+          </section>
+        )}
+        {tab === "revisao" && <Revisao />}
       </main>
-      <footer>Projeto Normas DFPC • Base para consulta técnica de PCE</footer>
+      <footer>
+        Normas DFPC · Consulta fundamentada em conteúdo cadastrado · Sem
+        serviços externos de geração de respostas
+      </footer>
     </>
   );
 }
