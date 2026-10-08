@@ -11,6 +11,7 @@ import {
   validarConsulta,
   limitarHistorico,
   filtrarHistorico,
+  temReferenciaNormativa,
 } from "../src/lib/consulta.ts";
 import type { Fonte } from "../src/lib/consulta.ts";
 import type { RegistroConsulta } from "../src/lib/consulta.ts";
@@ -148,6 +149,38 @@ test("distingue perguntas de procedimento de enquadramento de caso específico",
       contextoInicial(),
     ),
     [],
+  );
+});
+
+test("identifica consultas por norma e artigo sem confundir dúvidas gerais", () => {
+  assert.equal(
+    temReferenciaNormativa(
+      "O art. 2º do Anexo I do Decreto nº 10.030 foi revogado?",
+    ),
+    true,
+  );
+  assert.equal(temReferenciaNormativa("Artigo 3 da Portaria 118/2019"), true);
+  assert.equal(temReferenciaNormativa("Arts. 98 e 99 do Decreto 10030"), true);
+  assert.equal(temReferenciaNormativa("O que é PCE?"), false);
+  assert.equal(temReferenciaNormativa("A Portaria 56 foi revogada?"), false);
+});
+test("valida opções de esclarecimento antes de mostrar ou salvar", () => {
+  const c = registro("1").consulta;
+  assert.equal(
+    validarConsulta({
+      ...c,
+      esclarecimentos: [
+        { rotulo: "Anexo I", pergunta: "Art. 2º do Anexo I do Decreto 10030" },
+      ],
+    }),
+    true,
+  );
+  assert.equal(
+    validarConsulta({
+      ...c,
+      esclarecimentos: [{ rotulo: { invalido: true } }],
+    }),
+    false,
   );
 });
 

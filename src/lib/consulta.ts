@@ -87,6 +87,10 @@ export type Orientacao = {
   estado: "rascunho" | "publicada";
   revisado_em: string | null;
 };
+export type Esclarecimento = { rotulo: string; pergunta: string };
+export const temReferenciaNormativa = (pergunta: string) =>
+  /\b(decreto|portaria|lei|ita)\s+(?:n[º°o.]*\s*)?\d/i.test(pergunta) &&
+  /\bart(?:igo|s|igos)?[. ]*\d/i.test(pergunta);
 export type Consulta = {
   fontes: Fonte[];
   orientacoes: Orientacao[];
@@ -95,6 +99,9 @@ export type Consulta = {
   fontes_excluidas: number;
   pergunta_interpretada?: string | null;
   complementares?: number;
+  referencia_exata?: boolean;
+  aviso_referencia?: string;
+  esclarecimentos?: Esclarecimento[];
 };
 const normalizar = (t: string) =>
   t
@@ -255,6 +262,25 @@ function validarFonte(v: unknown): v is Fonte {
 export function validarConsulta(v: unknown): v is Consulta {
   if (!objeto(v)) return false;
   return (
+    (v.pergunta_interpretada === undefined ||
+      v.pergunta_interpretada === null ||
+      typeof v.pergunta_interpretada === "string") &&
+    (v.complementares === undefined ||
+      (typeof v.complementares === "number" &&
+        Number.isInteger(v.complementares) &&
+        v.complementares >= 0)) &&
+    (v.referencia_exata === undefined ||
+      typeof v.referencia_exata === "boolean") &&
+    (v.aviso_referencia === undefined ||
+      typeof v.aviso_referencia === "string") &&
+    (v.esclarecimentos === undefined ||
+      (Array.isArray(v.esclarecimentos) &&
+        v.esclarecimentos.every(
+          (e) =>
+            objeto(e) &&
+            typeof e.rotulo === "string" &&
+            typeof e.pergunta === "string",
+        ))) &&
     typeof v.data_referencia === "string" &&
     typeof v.versao === "string" &&
     typeof v.fontes_excluidas === "number" &&
@@ -362,6 +388,7 @@ export function exportarConsulta(r: RegistroConsulta) {
     `Consulta realizada: ${r.criadoEm}`,
     `Data de referência: ${r.contexto.data}`,
     `Versão: ${r.consulta.versao}`,
+    r.consulta.aviso_referencia || "",
     r.consulta.pergunta_interpretada
       ? `Tema reconhecido: ${r.consulta.pergunta_interpretada}`
       : "",

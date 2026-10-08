@@ -32,3 +32,11 @@ A interface publicada foi conferida em navegador: consulta com orientação/cita
 - Consulta no papel público `anon` confirmou retorno dos complementos, incluindo o § 1º da Portaria 291/2026.
 - Sem novos avisos de segurança Supabase.
 - Limitações e rastreabilidade das leituras oficiais registradas em `FONTES_OFICIAIS.md`.
+
+## Quarta atualização — referência exata
+
+- Doze testes unitários e build aprovados.
+- Doze casos SQL de referência exata em `tests/referencia-normativa.sql`: distinção de corpo/anexo, numeração romana/arábica do anexo, artigo, parágrafo, inciso, ano incorreto e lacunas; todos aprovados.
+- A identificação de uma referência explícita tem prioridade sobre o reconhecimento genérico de perguntas de vigência.
+- Opções retornadas pela API são validadas antes de exibição e preservação no histórico.
+- Não foram alterados conteúdos normativos, status ou datas de conferência.

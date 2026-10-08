@@ -29,11 +29,13 @@ import {
   validarConsulta,
   limitarHistorico,
   filtrarHistorico,
+  temReferenciaNormativa,
 } from "./lib/consulta";
 import type {
   Consulta,
   ContextoEmpresa,
   RegistroConsulta,
+  Esclarecimento,
 } from "./lib/consulta";
 import type { Norma } from "./types";
 import { FonteNormativa, LinhaNormativa } from "./components/FonteNormativa";
@@ -70,6 +72,7 @@ export default function App() {
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState("");
   const [pendencias, setPendencias] = useState<string[]>([]);
+  const [alternativas, setAlternativas] = useState<Esclarecimento[]>([]);
   const [historico, setHistorico] = useState<RegistroConsulta[]>(lerHistorico);
   const [buscaHistorico, setBuscaHistorico] = useState("");
   const [soFavoritos, setSoFavoritos] = useState(false);
@@ -140,6 +143,7 @@ export default function App() {
     setConsulta(null);
     setStatus(null);
     setPendencias([]);
+    setAlternativas([]);
     setErro("");
     setCarregando(false);
   }
@@ -158,6 +162,7 @@ export default function App() {
     setStatus(null);
     setErro("");
     setPendencias([]);
+    setAlternativas([]);
     setMensagem("");
     if (!supabase) {
       setErro("Conexão com a base normativa indisponível.");
@@ -175,11 +180,14 @@ export default function App() {
       ]);
       return;
     }
+    const referenciaExplicita = temReferenciaNormativa(pergunta);
     const vigencia =
+      !referenciaExplicita &&
       /\b(vigente|vigência|revogad[oa]s?|revogou|revoga[cç][aã]o|ainda vale|situa[cç][aã]o normativa)/i.test(
         pergunta,
       );
-    const faltam = vigencia ? [] : faltantes(pergunta, contexto);
+    const faltam =
+      vigencia || referenciaExplicita ? [] : faltantes(pergunta, contexto);
     if (faltam.length) {
       setPendencias(faltam);
       inputRef.current?.focus();
@@ -209,6 +217,13 @@ export default function App() {
       if (error) throw error;
       if (!validarConsulta(data)) throw new Error("Resposta inválida");
       const resposta = data as Consulta;
+      if (resposta.esclarecimentos?.length) {
+        setPendencias([
+          resposta.aviso_referencia || "Escolha a seção da norma.",
+        ]);
+        setAlternativas(resposta.esclarecimentos);
+        return;
+      }
       resposta.fontes = resposta.fontes.filter((f) =>
         fonteAtual(f, contexto.data),
       );
@@ -483,8 +498,22 @@ export default function App() {
                       <li key={p}>{p}</li>
                     ))}
                   </ul>
+                  {!!alternativas.length && (
+                    <div className="toolbar">
+                      {alternativas.map((a) => (
+                        <button
+                          key={a.rotulo}
+                          onClick={() => sugerir(a.pergunta)}
+                        >
+                          {a.rotulo}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <p>
-                    Complete os filtros ou inclua essas informações na pergunta.
+                    {alternativas.length
+                      ? "Escolha uma seção acima e clique em Consultar."
+                      : "Complete os filtros ou inclua essas informações na pergunta."}
                   </p>
                 </div>
               )}
@@ -586,6 +615,11 @@ export default function App() {
                       Incluídos {consulta.consulta.complementares} dispositivos
                       complementares do mesmo artigo para conferir condições e
                       exceções.
+                    </p>
+                  )}
+                  {consulta.consulta.aviso_referencia && (
+                    <p className="answer-block">
+                      {consulta.consulta.aviso_referencia}
                     </p>
                   )}
                   {!fontes.length ? (

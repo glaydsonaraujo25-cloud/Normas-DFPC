@@ -50,3 +50,18 @@ A busca empresarial pesquisa os dispositivos cadastrados diretamente. O indicado
 A página Consulta lista até 100 perguntas publicadas pela curadoria. Selecionar uma pergunta preenche seu produto e atividade e remove filtros anteriores, sem reaproveitar detalhes de outro caso. A consulta valida novamente os fundamentos na data atual; a presença no catálogo não garante que uma orientação continuará disponível.
 
 O histórico permite buscar por pergunta e título das normas, ignorando acentos, e filtrar favoritos. Ao ultrapassar 30 registros, a consulta mais recente é preservada e os favoritos têm prioridade. Exclusões individuais e limpeza podem ser desfeitas na mesma sessão, até recarregar/sair da página. O conteúdo interno dos registros é validado antes da abertura; registros corrompidos são ignorados.
+
+## Referência normativa exata
+
+Perguntas que identificam uma norma e um artigo usam a consulta direta em vez de aproximar artigos pela busca textual. Exemplos:
+
+- `Art. 2º do Anexo I do Decreto 10.030`.
+- `Art. 2º da Portaria 56 de 2017`.
+- `Art. 2º § 1º da Portaria 56 de 2017`.
+- `Art. 64 das normas reguladoras da Portaria 2566 de 2025`.
+
+Quando a seção não está identificada e pode haver numeração repetida, a interface apresenta escolhas de corpo principal, anexo ou normas aprovadas. A escolha preenche a pergunta; clique em Consultar. Esse esclarecimento não é salvo como resposta no histórico.
+
+São exibidas somente redações individuais conferidas e aplicáveis na data da consulta. Uma referência cadastrada como faixa de artigos não é apresentada como transcrição isolada de um deles. Incisos, parágrafos e alíneas exigem correspondência individual nos campos do dispositivo. A consulta de um artigo não constitui conclusão sobre a autorização de uma empresa. Os filtros de produto/atividade são usados nas consultas temáticas; uma referência expressamente solicitada pesquisa o dispositivo indicado.
+
+Lacunas de transcrição, seção ou identificação não comprovam revogação nem dispensa. O status mantém a conferência existente do corpus; não há nova auditoria integral nesta atualização.
