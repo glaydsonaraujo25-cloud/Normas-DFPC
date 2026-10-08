@@ -111,7 +111,7 @@ export function faltantes(pergunta: string, c: ContextoEmpresa): string[] {
   const itens: string[] = [];
   if (
     c.produto === "todos" &&
-    !/(arma|munic|explosiv|quimic|pirotec|fogos|blind|colete|balistic|menos.letal|nitrato|espargidor|dardos)/.test(
+    !/(arma|munic|explosiv|quimic|pirotec|fogos|blind|colete|balistic|menos.letal|menor potencial ofensivo|nitrato|espargidor|dardos)/.test(
       q,
     )
   )
@@ -164,7 +164,8 @@ export function secoesExtraidas(fontes: Fonte[]) {
     },
     {
       titulo: "Prazos e validade encontrados",
-      padrao: /prazo|validade|dias|meses|anos|vigência|vencimento|transitóri/i,
+      padrao:
+        /\b(prazos?|validade|dias?|meses|anos?|vigência|vencimento|transitóri\w*)\b/i,
     },
   ];
   return grupos.map((g) => ({

@@ -7,6 +7,7 @@ import {
   urlSegura,
   lerHistorico,
   salvarHistorico,
+  secoesExtraidas,
 } from "../src/lib/consulta.ts";
 import type { Fonte } from "../src/lib/consulta.ts";
 const fonte = {
@@ -91,4 +92,31 @@ test("recupera histórico com armazenamento inválido ou indisponível", () => {
   });
   assert.equal(salvarHistorico([]), false);
   assert.deepEqual(lerHistorico(), []);
+});
+
+test("não confunde danos com prazos em anos", () => {
+  const f = {
+    ...fonte,
+    conteudo: "Produto que possa causar danos às pessoas.",
+  } as Fonte;
+  assert.equal(
+    secoesExtraidas([f]).find((g) => g.titulo.startsWith("Prazos"))?.itens
+      .length,
+    0,
+  );
+  assert.equal(
+    secoesExtraidas([{ ...f, conteudo: "O prazo é de dois anos." }]).find((g) =>
+      g.titulo.startsWith("Prazos"),
+    )?.itens.length,
+    1,
+  );
+});
+test("reconhece a família de menor potencial ofensivo", () => {
+  assert.equal(
+    faltantes(
+      "Empresa de segurança privada pode adquirir PCE de menor potencial ofensivo?",
+      contextoInicial(),
+    ).length,
+    0,
+  );
 });

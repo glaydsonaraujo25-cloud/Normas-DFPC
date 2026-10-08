@@ -3,7 +3,7 @@
 ## Verificações concluídas
 
 - TypeScript e build de produção: aprovados.
-- Quatro testes unitários: vigência/data, contexto insuficiente, URLs seguras e histórico inválido/bloqueado.
+- Seis testes unitários: vigência/data, contexto insuficiente, URLs seguras e histórico inválido/bloqueado.
 - Oito casos existentes de regressão de busca: todos aprovados após as migrations.
 - Oito verificações de busca empresarial no banco: definição de PCE, registro de empresa, apostilamento, importação, explosivos, segurança privada, orientação correspondente e ausência de fonte revogada no resultado.
 - Consulta pública pelo endpoint REST usando chave publicável: HTTP 200, com orientação e dispositivo.
@@ -15,4 +15,4 @@ As verificações técnicas não equivalem a auditoria jurídica integral dos PD
 
 Não havia usuários no Supabase Auth. A autorização real de um revisor precisa ser provisionada pelo proprietário antes de validar o fluxo de edição com uma conta pessoal.
 
-O download do Chromium no ambiente de desenvolvimento falhou. A interface será conferida no endereço publicado por navegador disponível; o build e o fluxo REST foram verificados independentemente.
+A interface publicada foi conferida em navegador: consulta com orientação/citação, histórico e favorito persistentes e pedido de contexto insuficiente. O download local do Chromium falhou; a conferência usou o navegador disponível.
